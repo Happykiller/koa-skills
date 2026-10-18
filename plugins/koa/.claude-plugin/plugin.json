@@ -1,0 +1,17 @@
+{
+  "name": "koa",
+  "version": "0.1.0",
+  "description": "Les gestes du framework agentique KoA : monter et tenir conforme le QG d'un cluster.",
+  "author": {
+    "name": "Happykiller"
+  },
+  "homepage": "https://happykiller.github.io/koa-releases/architecture.html",
+  "repository": "https://github.com/Happykiller/koa-skills",
+  "license": "MIT",
+  "keywords": [
+    "koa",
+    "cluster",
+    "qg",
+    "framework-agentique"
+  ]
+}

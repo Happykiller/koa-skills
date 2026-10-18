@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "cluster": "cluster-a",
+  "deploiement": {
+    "cibles_permises": ["dev-a", "recette-a"],
+    "cibles_interdites": ["prod-a"]
+  }
+}

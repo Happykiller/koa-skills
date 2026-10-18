@@ -1,0 +1,26 @@
+{
+  "name": "koa-skills",
+  "description": "Les skills du framework agentique KoA : gestes de rôle, garde-fou de déploiement, QG de cluster.",
+  "owner": { "name": "Happykiller" },
+  "metadata": { "version": "0.1.0" },
+  "plugins": [
+    {
+      "name": "koa",
+      "source": "./plugins/koa",
+      "description": "Monter et tenir conforme le QG d'un cluster.",
+      "category": "productivity"
+    },
+    {
+      "name": "garde-fous",
+      "source": "./plugins/garde-fous",
+      "description": "Refuser un déploiement qui vise une cible non permise du cluster.",
+      "category": "security"
+    },
+    {
+      "name": "equipe-devops",
+      "source": "./plugins/equipe-devops",
+      "description": "Les workflows du rôle DevOps, en skills.",
+      "category": "development"
+    }
+  ]
+}

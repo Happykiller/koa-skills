@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "cluster": "<identifiant>",
+  "deploiement": {
+    "cibles_permises": [],
+    "cibles_interdites": []
+  }
+}

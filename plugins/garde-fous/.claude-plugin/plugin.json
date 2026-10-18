@@ -1,0 +1,17 @@
+{
+  "name": "garde-fous",
+  "version": "0.1.0",
+  "description": "Refuse toute commande de déploiement qui ne vise pas une cible que le QG du cluster déclare permise, et toute cible interdite aux agents. Framework agentique KoA.",
+  "author": {
+    "name": "Happykiller"
+  },
+  "homepage": "https://happykiller.github.io/koa-releases/architecture.html",
+  "repository": "https://github.com/Happykiller/koa-skills",
+  "license": "MIT",
+  "keywords": [
+    "deploiement",
+    "securite",
+    "hook",
+    "koa"
+  ]
+}

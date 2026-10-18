@@ -1,0 +1,24 @@
+name: verifier
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # La validation des manifestes est celle de Claude Code lui-même : un format qu'on recopierait
+      # dans un script maison vieillirait sans le dire.
+      - name: Installer Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Manifestes (marketplace et plugins)
+        run: |
+          claude plugin validate --strict .
+          for p in plugins/*/; do claude plugin validate --strict "$p"; done
+      - name: Garde-fou, skills et fuites
+        run: python3 -m unittest discover -s tests -v
