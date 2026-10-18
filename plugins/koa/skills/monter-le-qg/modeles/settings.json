@@ -1,7 +1,7 @@
 {
   "extraKnownMarketplaces": {
     "koa-skills": {
-      "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.1.0" }
+      "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.1.1" }
     }
   },
   "enabledPlugins": {

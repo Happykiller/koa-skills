@@ -56,6 +56,7 @@ qui contredit le framework sans le réécrire.
 |---|---|---|
 | `CLAUDE.md` | `CLAUDE.modele.md` | sections manquantes ajoutées ; le texte existant reste |
 | `docs/KB/README.md` | `KB-README.md` | index complété |
+| `docs/KB/glossaire.md` | `glossaire.md` | créé s'il manque ; un glossaire existant reste |
 | `docs/KB/decisions/` | — | dossier créé vide s'il manque (une décision = un fichier daté) |
 | `.claude/settings.json` | `settings.json` | clés `extraKnownMarketplaces.koa-skills` et `enabledPlugins` ajoutées ; `permissions` existantes gardées |
 | `.claude/garde-fous.json` | `garde-fous.json` | cibles tirées des environnements déclarés |
@@ -64,6 +65,11 @@ qui contredit le framework sans le réécrire.
 Dans `.claude/settings.json`, active les plugins des rôles déclarés (`equipe-devops@koa-skills` pour le
 DevOps, …) et **toujours** `garde-fous@koa-skills`. Épingle la marketplace sur un tag (`"ref": "v…"`),
 jamais sur une branche : un cluster ne suit pas `main` à son insu.
+
+**Claude Code protège le dossier `.claude/`** : y écrire demande l'accord de l'humain, même quand
+les autres écritures passent sans question. C'est voulu — ces fichiers décident de ce que les agents
+ont le droit de faire. Demande-le ; s'il est refusé ou que personne ne peut répondre, donne le contenu
+exact de chaque fichier dans le compte rendu, pour qu'il le pose lui-même.
 
 Les skills qui nomment un environnement du cluster (déployer, restaurer, migrer) vont dans
 `.claude/skills/` de ce QG. N'en crée aucune d'office : propose-les quand un geste revient.

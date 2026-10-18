@@ -1,6 +1,6 @@
 {
   "name": "koa",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Les gestes du framework agentique KoA : monter et tenir conforme le QG d'un cluster.",
   "author": {
     "name": "Happykiller"
