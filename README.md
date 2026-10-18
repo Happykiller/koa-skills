@@ -12,7 +12,7 @@ confiance**, et cloisonnée par les accès plutôt que par la consigne.
 
 | Plugin | Ce qu'il apporte |
 |---|---|
-| `koa` | `monter-le-qg` : monter, puis tenir conforme, le QG d'un cluster — le dépôt qui porte la carte de ses dépôts, ses environnements, sa KB, ses plugins épinglés |
+| `koa` | `monter-le-qg` : monter, puis tenir conforme, le QG d'un cluster — le dépôt qui porte la carte de ses dépôts, ses environnements, sa KB, ses plugins épinglés · `poser-la-memoire` : le ghost — la KB et le `CLAUDE.md` d'un projet seul, ou leur répartition dans un cluster (QG, dépôt de la stack, seed d'un agent) · `capitaliser` : ranger ce qu'une session a appris au bon étage, écrit jusqu'au QG, proposé au-dessus · `clore` : la fin de session d'un agent de cluster, QG compris |
 | `garde-fous` | un hook qui refuse toute commande de déploiement visant une cible que le QG ne déclare pas permise, ou qu'il déclare interdite aux agents |
 | `equipe-devops` | les vingt workflows du rôle DevOps : analyser une infrastructure, déployer, revenir en arrière, diagnostiquer, sauvegarder… |
 
@@ -33,7 +33,7 @@ Ou, pour que le dépôt les déclare lui-même, dans son `.claude/settings.json`
 ```json
 {
   "extraKnownMarketplaces": {
-    "koa-skills": { "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.1.1" } }
+    "koa-skills": { "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.2.0" } }
   },
   "enabledPlugins": {
     "garde-fous@koa-skills": true,

@@ -2,12 +2,12 @@
   "name": "koa-skills",
   "description": "Les skills du framework agentique KoA : gestes de rôle, garde-fou de déploiement, QG de cluster.",
   "owner": { "name": "Happykiller" },
-  "metadata": { "version": "0.1.1" },
+  "metadata": { "version": "0.2.0" },
   "plugins": [
     {
       "name": "koa",
       "source": "./plugins/koa",
-      "description": "Monter et tenir conforme le QG d'un cluster.",
+      "description": "Monter le QG d'un cluster, poser la mémoire d'un projet (le ghost), capitaliser au bon étage, clore une session.",
       "category": "productivity"
     },
     {

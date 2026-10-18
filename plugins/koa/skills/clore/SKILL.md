@@ -1,0 +1,128 @@
+---
+name: clore
+description: "Clore une session de travail d'un agent dans un cluster du framework agentique KoA : capitaliser au bon étage (koa:capitaliser), committer et pousser chaque dépôt touché — dépôts de la stack, seed, QG du cluster —, par une PR quand la branche est protégée, synchroniser les données, arrêter les conteneurs du projet, puis vérifier que tout est propre. Autonome, ne s'arrête que sur anomalie. À déclencher en fin de session, par /koa:clore."
+---
+
+# Clore la session
+
+Une session close, c'est trois choses vraies en même temps : **rien d'appris qui soit perdu, rien d'écrit
+qui reste non poussé, rien qui tourne encore dans le vide.** Tant que l'une est fausse, la session n'est
+pas close — et tu le dis au lieu de conclure.
+
+Dans un cluster, le périmètre ne s'écrit pas dans une table qui vieillirait : il se **recense** à chaque
+fois, depuis le disque et la carte du QG. Sans `KOA_QG`, ce n'est pas un cluster : utilise la clôture du
+projet (`/cloture`).
+
+| Variante | Action |
+|---|---|
+| `/koa:clore` | le rituel complet |
+| `/koa:clore check` | ce qui *serait* fait, dépôt par dépôt, sans rien écrire ni arrêter |
+| `/koa:clore sans-capi` | la capitalisation est déjà faite |
+| `/koa:clore sans-push` | committe et arrête, ne pousse pas |
+
+## Ordre — non négociable
+
+```
+1. recenser → 2. capitaliser → 3. committer → 4. pousser → 5. synchroniser les données → 6. arrêter → 7. vérifier
+```
+
+Les conteneurs tombent **en dernier** : un hook de pre-commit, une suite de tests ou une synchro peut
+encore avoir besoin de la base.
+
+## Arrêts — et seulement ceux-là
+
+Tu enchaînes sans demander de validation. Tu t'arrêtes, exposes et attends si :
+
+- un **secret** (`.env`, clé, jeton, dump, identifiants) est sur le point d'être committé ;
+- un fichier modifié **n'a aucun rapport** avec la session ;
+- un acquis **contredit** une page existante, au QG surtout — une loi d'équipe ne se réécrit pas en clôture ;
+- un **push est rejeté**, ou une règle impose une PR que tu ne peux pas ouvrir ;
+- une **synchro de données** échoue ou signale un conflit ;
+- un **conteneur** tourne sans appartenir à un compose d'un dépôt du périmètre ;
+- un dépôt **reste sale** après commit, ou est en rebase, merge ou cherry-pick.
+
+## Interdits absolus
+
+- `git push --force` / `--force-with-lease` ; fusionner **ta propre** PR ; `gh pr merge --admin` ;
+- `git add -A` / `git add .` sans avoir lu ce que ça ajoute ;
+- `git reset --hard`, `git checkout .`, `git clean -fd`, `git stash` silencieux ;
+- `docker compose down -v`, `docker system prune`, `docker stop $(docker ps -q)` ;
+- committer sur une branche que les règles du cluster réservent aux PR.
+
+## 1. Recenser
+
+```bash
+echo "cluster=$KOA_CLUSTER qg=$KOA_QG"
+find "$HOME" -maxdepth 3 -name .git -prune 2>/dev/null | sed 's|/\.git$||' | sort
+for r in $(find "$HOME" -maxdepth 3 -name .git -prune 2>/dev/null | sed 's|/\.git$||'); do
+  [ -n "$(git -C "$r" status --porcelain)" ] && echo "modifié : $r"
+  git -C "$r" rev-list --count @{upstream}..HEAD 2>/dev/null | grep -qv '^0$' && echo "non poussé : $r"
+done
+docker compose ls 2>/dev/null
+docker ps --format '{{.Names}}\t{{.Label "com.docker.compose.project"}}'
+grep -ril -E 'name: .*sync|description: .*(sync|synchro)' "$HOME"/*/.claude/skills/*/SKILL.md 2>/dev/null
+```
+
+Le périmètre : **les dépôts modifiés ou non poussés**, plus le QG. Confronte-le à la carte des dépôts du
+QG (`$KOA_QG/CLAUDE.md`) : un dépôt sur le disque absent de la carte se traite **et** se signale. Ordre :
+les dépôts de la stack, puis la seed, puis **le QG en dernier** — la capitalisation y écrit.
+
+## 2. Capitaliser
+
+`/koa:capitaliser`, en autonomie : ce qui passe ses filtres est écrit ou proposé ; une contradiction est
+un arrêt. S'il n'est pas disponible, dis-le et poursuis sans ce volet.
+
+## 3. Committer, dépôt par dépôt
+
+1. `git status --porcelain` et `git diff` — **lis** avant de stager.
+2. Les fichiers non suivis **un par un** : un artefact de build ou un log rejoint `.gitignore`.
+3. **Un commit par sujet**, avec la convention du dépôt (`git log --oneline -20`) et les règles de
+   `$KOA_QG/docs/KB/REGLES/process.md`. Décris l'effet, pas la liste des fichiers.
+4. Pas de commit vide pour « marquer la fin ».
+
+## 4. Pousser
+
+Sur la branche courante, jamais de force. **Une branche protégée** — c'est la règle au QG, où plusieurs
+agents écrivent — se pousse par une branche courte et une PR :
+
+```bash
+b="capitalisation/${KOA_CLUSTER}-$(date +%Y%m%d-%H%M)"
+git switch -c "$b" && git push -u origin "$b"
+gh pr create --fill --base main
+```
+
+La PR est relue et fusionnée **par un autre rôle** que toi ; donne son lien. Un push rejeté : rapporte
+l'écart (`git rev-list --left-right --count @{upstream}...HEAD`), ne rebase pas d'office.
+
+## 5. Synchroniser les données
+
+Chaque skill de sync data trouvée, **avant** l'arrêt des conteneurs. Aucune : dis-le, c'est un no-op.
+`sans-push` la saute aussi : elle pousse vers un remote.
+
+## 6. Arrêter les conteneurs
+
+Seulement ceux des composes du périmètre, depuis leur dossier : `docker compose -f <fichier> down`, sans
+`-v`. Ce qui n'est pas identifié reste en vie et part dans le rapport.
+
+## 7. Vérifier, puis rendre compte
+
+```bash
+for r in <dépôts du périmètre> "$KOA_QG"; do
+  printf '%-28s ' "${r#$HOME/}"
+  [ -z "$(git -C "$r" status --porcelain)" ] && printf 'propre  ' || printf 'SALE    '
+  git -C "$r" rev-list --left-right --count @{upstream}...HEAD 2>/dev/null \
+    | awk '{print ($1==0 && $2==0) ? "à jour" : "retard/avance : "$1"/"$2}'
+done
+docker ps --format '{{.Names}}\t{{.Label "com.docker.compose.project"}}'
+```
+
+```
+## Clôture — <rôle>, cluster <cluster>
+Capitalisation : 1 page au dépôt, 1 consigne au QG, 1 issue rédigée à ouvrir (<lien prérempli>).
+| Dépôt | Commits | Push | État final |
+QG : PR <lien>, à relire par un autre rôle.
+Conteneurs : …
+Non refermé : … (ou « rien »)
+```
+
+**« La session est close »** est une affirmation vérifiée, pas une formule de politesse.
