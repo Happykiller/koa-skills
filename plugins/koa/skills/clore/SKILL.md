@@ -1,6 +1,6 @@
 ---
 name: clore
-description: "Clore une session de travail d'un agent dans un cluster du framework agentique KoA : capitaliser au bon étage (koa:capitaliser), committer et pousser chaque dépôt touché — dépôts de la stack, seed, QG du cluster —, par une PR quand la branche est protégée, synchroniser les données, arrêter les conteneurs du projet, puis vérifier que tout est propre. Autonome, ne s'arrête que sur anomalie. À déclencher en fin de session, par /koa:clore."
+description: "Clore une session de travail d'un agent dans un cluster du framework agentique KoA : capitaliser au bon étage (koa:capitaliser), committer et pousser chaque dépôt touché — dépôts de la stack, seed, QG du cluster, par une branche que l'orchestrateur fusionne —, synchroniser les données, arrêter les conteneurs du projet, puis vérifier que tout est propre. Autonome, ne s'arrête que sur anomalie. À déclencher en fin de session, par /koa:clore."
 ---
 
 # Clore la session
@@ -27,7 +27,8 @@ projet (`/cloture`).
 ```
 
 Les conteneurs tombent **en dernier** : un hook de pre-commit, une suite de tests ou une synchro peut
-encore avoir besoin de la base.
+encore avoir besoin de la base. Dans l'équipe, **l'orchestrateur clôt en dernier**, après les autres
+rôles (voir « Pousser »).
 
 ## Arrêts — et seulement ceux-là
 
@@ -36,7 +37,7 @@ Tu enchaînes sans demander de validation. Tu t'arrêtes, exposes et attends si 
 - un **secret** (`.env`, clé, jeton, dump, identifiants) est sur le point d'être committé ;
 - un fichier modifié **n'a aucun rapport** avec la session ;
 - un acquis **contredit** une page existante, au QG surtout — une loi d'équipe ne se réécrit pas en clôture ;
-- un **push est rejeté**, ou une règle impose une PR que tu ne peux pas ouvrir ;
+- un **push est rejeté**, ou la forge du QG prend des PR et refuse celle que tu ouvres ;
 - une **synchro de données** échoue ou signale un conflit ;
 - un **conteneur** tourne sans appartenir à un compose d'un dépôt du périmètre ;
 - un dépôt **reste sale** après commit, ou est en rebase, merge ou cherry-pick.
@@ -47,7 +48,8 @@ Tu enchaînes sans demander de validation. Tu t'arrêtes, exposes et attends si 
 - `git add -A` / `git add .` sans avoir lu ce que ça ajoute ;
 - `git reset --hard`, `git checkout .`, `git clean -fd`, `git stash` silencieux ;
 - `docker compose down -v`, `docker system prune`, `docker stop $(docker ps -q)` ;
-- committer sur une branche que les règles du cluster réservent aux PR.
+- committer sur une branche que les règles du cluster réservent aux PR ;
+- pousser sur `main` du QG quand tu n'es pas l'orchestrateur — même « faute de PR ».
 
 ## 1. Recenser
 
@@ -82,17 +84,32 @@ un arrêt. S'il n'est pas disponible, dis-le et poursuis sans ce volet.
 
 ## 4. Pousser
 
-Sur la branche courante, jamais de force. **Une branche protégée** — c'est la règle au QG, où plusieurs
-agents écrivent — se pousse par une branche courte et une PR :
+Sur la branche courante, jamais de force. **Au QG, seul l'orchestrateur pousse sur `main`** : plusieurs
+agents y écrivent en même temps, et une capitalisation que personne ne relit avant `main` y installe ses
+doublons et ses contradictions. Tout autre rôle pousse une branche courte, à son nom :
 
 ```bash
-b="capitalisation/${KOA_CLUSTER}-$(date +%Y%m%d-%H%M)"
+b="capitalisation/<rôle>-$(date +%Y%m%d-%H%M)"
 git switch -c "$b" && git push -u origin "$b"
-gh pr create --fill --base main
 ```
 
-La PR est relue et fusionnée **par un autre rôle** que toi ; donne son lien. Un push rejeté : rapporte
-l'écart (`git rev-list --left-right --count @{upstream}...HEAD`), ne rebase pas d'office.
+La suite dépend de la forge, que la carte du QG nomme (`$KOA_QG/CLAUDE.md`) — ne la devine pas :
+
+- **une forge à PR** (GitHub, GitLab…) : `gh pr create --fill --base main`, ou son équivalent. La PR est
+  relue et fusionnée **par un autre rôle** que toi ; donne son lien.
+- **pas de PR possible** (un `git daemon` local, un dépôt nu partagé) : la branche poussée **est** la
+  demande de relecture. L'orchestrateur la relit et la fusionne ; donne son nom. Ce n'est pas une raison
+  de pousser sur `main` : l'absence de PR ne lève pas la relecture, elle la confie à l'orchestrateur.
+
+**L'orchestrateur clôt en dernier.** Il relit et fusionne d'abord les branches `capitalisation/…` des
+autres — avant son étape 2, pas à la 4 —, puis **relit le QG fusionné** avant de capitaliser : des clôtures parallèles n'ont pas vu les
+pages l'une de l'autre, et un même fait peut y être arrivé deux fois — il le ramène à un seul endroit. Il
+pousse ensuite sur `main` ; sur une forge à PR qui protège `main`, il passe lui aussi par une PR. Une
+branche qu'il fusionne a été relue par lui, pas par son auteur : c'est ce qui la distingue de
+« fusionner ta propre PR ».
+
+Un push rejeté : rapporte l'écart (`git rev-list --left-right --count @{upstream}...HEAD`), ne rebase
+pas d'office.
 
 ## 5. Synchroniser les données
 
@@ -120,7 +137,7 @@ docker ps --format '{{.Names}}\t{{.Label "com.docker.compose.project"}}'
 ## Clôture — <rôle>, cluster <cluster>
 Capitalisation : 1 page au dépôt, 1 consigne au QG, 1 issue rédigée à ouvrir (<lien prérempli>).
 | Dépôt | Commits | Push | État final |
-QG : PR <lien>, à relire par un autre rôle.
+QG : PR <lien>, à relire par un autre rôle — ou branche capitalisation/<rôle>-…, à fusionner par l'orchestrateur.
 Conteneurs : …
 Non refermé : … (ou « rien »)
 ```

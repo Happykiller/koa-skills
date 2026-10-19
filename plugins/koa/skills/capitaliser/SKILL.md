@@ -34,7 +34,7 @@ La première réponse oui décide. **Une chose monte aussi haut que sa général
 | Question | Étage | Geste |
 |---|---|---|
 | Vrai seulement pour **ce code** ? | N4 — le dépôt de la stack | **écrit** dans sa `docs/KB/` (`DAT/`, `DAF/`, `HISTORY.md`) |
-| Vrai pour **tout le cluster** — un environnement, une décision, un terme métier, une règle d'équipe ? | N3 — le QG | **écrit** dans `$KOA_QG/docs/KB/` |
+| Vrai pour **tout le cluster** — un environnement, une décision, un terme métier, une règle d'équipe ? | N3 — le QG | **écrit** dans `$KOA_QG/docs/KB/`, ou son `CLAUDE.md` |
 | Un **geste** refait trois fois, ou qui le sera — ou une skill de `koa-skills` à corriger ? | N2 — la marketplace | **proposé** : une issue rédigée pour `Happykiller/koa-skills` |
 | Vrai pour **tout agent de ce rôle**, quel que soit le projet ? | N1 — la librairie | **proposé** : une issue rédigée pour `Happykiller/koa-releases` quand le livre est de KoA (`koa/…`, `equipe/…`) ; `library_ecrire` pour un livre de l'opérateur |
 
@@ -47,8 +47,14 @@ Au QG, la destination dépend de la nature :
 | Process, workflow, norme | `REGLES/process.md`, `workflows.md`, `normes.md` |
 | Décision transverse | `decisions/AAAA-MM-JJ-sujet.md` |
 | Terme métier | `glossaire.md` |
+| Fait d'environnement commun : la distro, un outil présent ou absent, la forge | la section « Les environnements » de `$KOA_QG/CLAUDE.md`, une fois pour l'équipe |
 | Ce que **ton rôle** a appris de sa façon de travailler ici | `equipe/<rôle>.md` |
 | La mission elle-même | une ligne de `HISTORY.md` |
+
+Un fait d'environnement **n'est pas un acquis de rôle**, même découvert en jouant le tien : « `python`
+n'existe pas, seulement `python3` » vaut pour chaque agent de la distro. Rangé dans `equipe/<rôle>.md`,
+chaque rôle le redécouvre et l'écrit dans sa page — trois fois pour un seul chantier. Le `CLAUDE.md` du
+QG, lui, est lu par tous à la prise de poste.
 
 **Ce qui monte en N1 passe trois gardes** — sinon, il reste au QG :
 
@@ -77,7 +83,12 @@ Pour un livre **de l'opérateur** (une armoire à lui), lis le chapitre puis pro
 
 ## 4. Écrire comme au QG
 
-- **Enrichir avant de créer** : cherche d'abord la page qui couvre le sujet.
+- **Enrichir avant de créer** : cherche d'abord la page qui couvre le sujet — sur le QG à jour
+  (`git -C "$KOA_QG" pull --ff-only`), pas sur la copie de ta prise de poste.
+- **Des clôtures parallèles ne se voient pas** : chacune écrit sur sa branche, et ce qu'un autre rôle
+  capitalise en même temps que toi n'est sur aucune page que tu peux lire. Le doublon ne se rattrape
+  qu'**après fusion** : l'orchestrateur, qui clôt en dernier, relit le QG fusionné et ramène un même fait
+  à un seul endroit (`koa:clore`, « Pousser »).
 - **Index d'abord** : toute page nouvelle rejoint le `README.md` de son dossier dans le même geste.
 - Le **pourquoi**, jamais le seul quoi ; le champ `maj:` des pages touchées ; une ligne d'`HISTORY.md`.
 - Ce qui **contredit** une page existante — surtout une loi — est un arrêt : propose, ne tranche pas.
