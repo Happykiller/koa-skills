@@ -1,8 +1,8 @@
 {
   "name": "koa-skills",
-  "description": "Les skills du framework agentique KoA : gestes de rôle, garde-fou de déploiement, QG de cluster.",
+  "description": "Les skills du framework agentique KoA : gestes de rôle, garde-fou de déploiement et de fusion, QG de cluster.",
   "owner": { "name": "Happykiller" },
-  "metadata": { "version": "0.2.1" },
+  "metadata": { "version": "0.3.0" },
   "plugins": [
     {
       "name": "koa",
@@ -13,7 +13,7 @@
     {
       "name": "garde-fous",
       "source": "./plugins/garde-fous",
-      "description": "Refuser un déploiement qui vise une cible non permise du cluster.",
+      "description": "Refuser un déploiement qui vise une cible non permise du cluster, et une fusion sans --match-head-commit, avec --admin ou hors de l'orchestrateur.",
       "category": "security"
     },
     {

@@ -1,11 +1,15 @@
 """Le garde-fou de déploiement, éprouvé comme Claude Code l'appelle : un JSON sur l'entrée standard,
-un processus, une sortie lue. Lancer : python3 -m unittest discover -s tests"""
+un processus, une sortie lue. La fusion, elle, est éprouvée en important le module : ses deux chemins
+de distro y sont des constantes qu'on remplace. Lancer : python3 -m unittest discover -s tests"""
+import importlib.util
+import io
 import json
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HOOK = os.path.join(os.path.dirname(__file__), "..", "plugins", "garde-fous", "hooks", "garde_fous.py")
 
@@ -23,7 +27,10 @@ class GardeFous(unittest.TestCase):
     def appeler(self, commande, outil="Bash"):
         entree = {"session_id": "s1", "cwd": self.projet, "hook_event_name": "PreToolUse",
                   "tool_name": outil, "tool_input": {"command": commande}}
-        env = dict(os.environ, CLAUDE_PROJECT_DIR=self.projet, CLAUDE_PLUGIN_DATA=self.donnees)
+        # Sous Windows, un processus fils écrit sa sortie en cp1252 : les accents des raisons ne se
+        # liraient pas en UTF-8. La distro, elle, est déjà en UTF-8.
+        env = dict(os.environ, CLAUDE_PROJECT_DIR=self.projet, CLAUDE_PLUGIN_DATA=self.donnees,
+                   PYTHONIOENCODING="utf-8")
         r = subprocess.run([sys.executable, HOOK], input=json.dumps(entree), capture_output=True,
                            text=True, encoding="utf-8", env=env)
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -109,6 +116,118 @@ class GardeFous(unittest.TestCase):
         self.configurer(self.CONF)
         self.appeler("kubectl apply --token=SECRET-123 --context prod-a")
         self.assertNotIn("SECRET-123", json.dumps(self.journal()))
+
+
+def charger_le_module():
+    spec = importlib.util.spec_from_file_location("garde_fous", HOOK)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+SHA = "0123456789abcdef0123456789abcdef01234567"
+
+
+class Fusion(unittest.TestCase):
+    def setUp(self):
+        self.gf = charger_le_module()
+        self.distro = tempfile.mkdtemp()
+        # Hors d'une distro KoA par défaut, même quand la suite tourne dans l'une d'elles.
+        self.gf.MARQUE_KOA = os.path.join(self.distro, "koa-seed")
+        self.gf.TEMOIN_DROITS = os.path.join(self.distro, "droits")
+        self.projet = tempfile.mkdtemp()
+
+    def naitre_de_koa(self, droits=None):
+        open(self.gf.MARQUE_KOA, "w").close()
+        if droits is not None:
+            with open(self.gf.TEMOIN_DROITS, "w", encoding="utf-8") as f:
+                f.write(droits)
+
+    def juger(self, commande):
+        entree = {"session_id": "s1", "tool_name": "Bash", "tool_input": {"command": commande}}
+        return self.gf.decider(entree, self.projet)
+
+    def refuse(self, commande, extrait):
+        decision, raison = self.juger(commande)
+        self.assertEqual(decision, "deny", commande)
+        self.assertIn(extrait, raison)
+
+    def test_une_fusion_sur_le_sha_complet_passe_sans_un_mot(self):
+        self.assertEqual(self.juger(f"gh pr merge 12 --squash --match-head-commit {SHA}"), (None, None))
+        self.assertEqual(self.juger(f"gh pr merge 12 --match-head-commit={SHA.upper()}"), (None, None))
+
+    def test_une_continuation_de_ligne_ne_coupe_pas_la_fusion(self):
+        self.assertEqual(self.juger(f"gh pr merge 12 --squash \\\n  --match-head-commit {SHA}"),
+                         (None, None))
+
+    def test_un_sha_court_est_refuse(self):
+        self.refuse("gh pr merge 12 --match-head-commit 0123456", "SHA complet")
+
+    def test_un_sha_absent_est_refuse(self):
+        self.refuse("gh pr merge 12 --squash", "--match-head-commit")
+        self.refuse("gh pr merge 12 --match-head-commit", "--match-head-commit")
+        # Une tête calculée au moment de fusionner n'est pas celle que la revue a lue.
+        self.refuse("gh pr merge 12 --match-head-commit $(git rev-parse HEAD)", "SHA complet")
+
+    def test_admin_est_refuse_meme_avec_la_tete(self):
+        self.refuse(f"gh pr merge 12 --admin --match-head-commit {SHA}", "--admin")
+        self.refuse(f"gh pr merge 12 --admin=true --match-head-commit {SHA}", "--admin")
+        # Un « ; » entre guillemets ne le détache pas de la fusion.
+        self.refuse(f'gh pr merge 12 --match-head-commit {SHA} --subject ";" --admin', "--admin")
+
+    def test_un_segment_voisin_ne_prete_pas_sa_tete(self):
+        self.refuse(f"echo --match-head-commit {SHA} ; gh pr merge 12", "--match-head-commit")
+        self.refuse(f"echo --match-head-commit {SHA}\ngh pr merge 12", "--match-head-commit")
+
+    def test_un_segment_voisin_qui_lit_ne_gene_pas(self):
+        self.assertEqual(self.juger(f"gh pr view 12 && gh pr merge 12 --match-head-commit {SHA}"),
+                         (None, None))
+        self.assertEqual(self.juger("gh pr view 12 --json mergeable | jq ."), (None, None))
+
+    def test_un_prefixe_ne_cache_pas_la_fusion(self):
+        self.refuse("sudo -u agent /usr/bin/gh pr merge 12", "--match-head-commit")
+        self.refuse("GH_TOKEN=x env gh pr -R o/depot merge 12", "--match-head-commit")
+
+    def test_des_guillemets_non_fermes_sont_refuses(self):
+        self.refuse(f'gh pr merge 12 --match-head-commit {SHA} --body "pas fermé', "ne se lit pas")
+        # Illisible mais sans fusion : ce n'est pas l'affaire de cette section.
+        self.assertEqual(self.juger('echo "pas fermé'), (None, None))
+
+    def test_une_distro_koa_sans_temoin_ne_fusionne_pas(self):
+        self.naitre_de_koa()
+        self.refuse(f"gh pr merge 12 --match-head-commit {SHA}", "seul l'orchestrateur fusionne")
+
+    def test_un_temoin_sans_le_droit_ne_suffit_pas(self):
+        self.naitre_de_koa("autre\nfusionner-tout\n")
+        self.refuse(f"gh pr merge 12 --match-head-commit {SHA}", "seul l'orchestrateur fusionne")
+
+    def test_une_distro_koa_qui_a_le_droit_fusionne(self):
+        self.naitre_de_koa("fusionner\n")
+        self.assertEqual(self.juger(f"gh pr merge 12 --match-head-commit {SHA}"), (None, None))
+        # Le droit ne lève pas les deux autres refus.
+        self.refuse(f"gh pr merge 12 --admin --match-head-commit {SHA}", "--admin")
+
+    def test_la_fusion_ne_depend_pas_de_la_configuration_du_qg(self):
+        os.makedirs(os.path.join(self.projet, ".claude"))
+        with open(os.path.join(self.projet, ".claude", "garde-fous.json"), "w") as f:
+            f.write("{ pas du json")
+        self.refuse("gh pr merge 12", "--match-head-commit")
+
+    def test_le_refus_se_journalise_sans_la_commande(self):
+        donnees = tempfile.mkdtemp()
+        entree = {"session_id": "s1", "tool_name": "Bash",
+                  "tool_input": {"command": "gh pr merge 12 --body SECRET-456"}}
+        sortie = io.StringIO()
+        with mock.patch.dict(os.environ, {"CLAUDE_PLUGIN_DATA": donnees,
+                                          "CLAUDE_PROJECT_DIR": self.projet}), \
+                mock.patch.object(sys, "stdin", io.StringIO(json.dumps(entree))), \
+                mock.patch.object(sys, "stdout", sortie):
+            self.assertEqual(self.gf.main(), 0)
+        self.assertEqual(json.loads(sortie.getvalue())["hookSpecificOutput"]["permissionDecision"], "deny")
+        with open(os.path.join(donnees, "decisions.log"), encoding="utf-8") as f:
+            journal = f.read()
+        self.assertIn('"deny"', journal)
+        self.assertNotIn("SECRET-456", journal)
 
 
 if __name__ == "__main__":
