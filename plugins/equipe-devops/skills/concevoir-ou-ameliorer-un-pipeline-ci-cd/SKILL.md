@@ -1,18 +1,15 @@
 ---
 name: concevoir-ou-ameliorer-un-pipeline-ci-cd
-description: "WF-03 du rôle DevOps : concevoir ou améliorer un pipeline CI/CD. Objectif : un pipeline qui bloque ce qu'il doit bloquer, laisse passer le reste, et dont les échecs sont lisibles. Autonomie maximale : Niv. 2, application Niv. 3."
+description: "DevOps — quand : créer ou modifier une CI/CD, ou une CI qui laisse passer ce qu'elle devrait bloquer, ou dont les échecs sont illisibles."
 ---
 
 # WF-03 — Concevoir ou améliorer un pipeline CI/CD
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 2, application Niv. 3 — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 2, application Niv. 3.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Objectif** : un pipeline qui bloque ce qu'il doit bloquer, laisse passer le reste, et dont les échecs sont lisibles.
 - **Entrées** : pipeline existant, historique d'échecs et de contournements, incidents passés.

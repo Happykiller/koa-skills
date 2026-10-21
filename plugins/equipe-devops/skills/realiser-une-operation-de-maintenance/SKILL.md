@@ -1,18 +1,15 @@
 ---
 name: realiser-une-operation-de-maintenance
-description: "WF-14 du rôle DevOps : réaliser une opération de maintenance. À déclencher : exécuter une intervention planifiée (mise à niveau, purge, migration, redémarrage) sans perte ni surprise. Autonomie maximale : Niv. 4 en production."
+description: "DevOps — quand : une intervention planifiée — mise à niveau, purge, migration, redémarrage — à mener sans perte ni surprise."
 ---
 
 # WF-14 — Réaliser une opération de maintenance
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 4 en production — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 4 en production.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Objectif / déclencheur** : exécuter une intervention planifiée (mise à niveau, purge, migration, redémarrage) sans perte ni surprise.
 - **Étapes** :

@@ -23,6 +23,12 @@ class MotifsDeFuite(unittest.TestCase):
     def test_l_adresse_d_un_plugin_n_est_pas_une_fuite(self):
         self.assertEqual(self.attrape("claude plugin install garde-fous@koa-skills"), [])
 
+    def test_une_description_dit_quand_se_declencher(self):
+        self.assertTrue(verifier.DECLENCHEUR.search("DevOps — quand : un service arrêté."))
+        self.assertTrue(verifier.DECLENCHEUR.search("Rituel de fin de session. Par /koa:clore."))
+        # Un objectif n'est pas un déclencheur : c'était le défaut des descriptions de la 0.3.0.
+        self.assertIsNone(verifier.DECLENCHEUR.search("Objectif : un pipeline qui bloque ce qu'il doit."))
+
     def test_le_depot_est_propre(self):
         self.assertEqual(verifier.verifier(), [])
 

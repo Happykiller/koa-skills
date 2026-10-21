@@ -1,6 +1,6 @@
 ---
 name: capitalize
-description: Amélioration continue de fin de session. Analyse ce qui vient de se passer, identifie ce qui doit rejoindre la base de connaissance docs/KB/ (faire mieux) et ce qui est candidat à devenir un skill, un sous-agent ou un hook (faire plus efficacement). Propose toujours avant d'écrire. Déclencher avec /capitalize.
+description: Amélioration continue de fin de session. Analyse ce qui vient de se passer, identifie ce qui doit rejoindre la base de connaissance docs/KB/ (faire mieux) et ce qui est candidat à devenir un skill, un sous-agent ou un hook (faire plus efficacement). Écrit sans faire valider, puis rend compte. Déclencher avec /capitalize.
 ---
 
 # /capitalize — capitaliser sur la session
@@ -64,7 +64,8 @@ Règles d'écriture :
 - **Découper** : si une page dépasse ~200 lignes ou ~15 Ko, transforme-la en dossier + index.
 - Toujours écrire le **pourquoi**, jamais le seul quoi.
 - Mettre à jour le champ `maj:` des pages touchées.
-- Ajouter une ligne à `docs/KB/HISTORY.md`.
+- Ajouter une ligne à `docs/KB/HISTORY.md` quand la session a **livré** quelque chose — pas pour
+  dire qu'elle a eu lieu : l'historique git le sait déjà.
 
 ## Étape 4 — volet moteur (faire plus efficacement)
 
@@ -86,9 +87,18 @@ Garde-fous :
   la prochaine fois, c'est que c'est une règle KB, pas un outil.
 - Tout outil créé est ajouté à `docs/KB/MOTEUR.md`, avec sa colonne « quand l'utiliser ».
 
-## Étape 5 — proposer, puis écrire
+## Étape 5 — écrire, puis rendre compte
 
-**N'écris rien avant validation.** Présente d'abord :
+**Écris sans faire valider** : le tri — durable, non déductible, réutilisable — **est** le travail,
+le faire approuver une seconde fois le fait refaire à quelqu'un d'autre, et une clôture autonome
+attendrait une validation que personne ne donnera. Deux exceptions, qui s'exposent et attendent :
+ce qui **contredit** une page existante — une loi surtout —, et ce qui sort de `docs/KB/`,
+`.claude/` et `tools/`.
+
+**Rien ne passe les filtres : n'écris rien**, pas même une ligne d'historique, et dis-le en une
+ligne. Une session courte sans acquis ne laisse aucune trace — c'est sa clôture normale.
+
+Le compte rendu a cette forme :
 
 ```
 ## À intégrer à la KB
@@ -102,5 +112,5 @@ Garde-fous :
 - Le contournement du bug npm : temporaire, sera obsolète à la prochaine version.
 ```
 
-L'utilisateur valide, retire ou amende. **Ensuite** seulement tu écris, puis tu rends compte :
-fichiers créés, fichiers enrichis, index mis à jour, ligne ajoutée à `HISTORY.md`.
+L'utilisateur peut retirer ou amender après coup : c'est un commit qu'on corrige, pas une
+autorisation qu'on attend. Termine par les fichiers créés, enrichis, les index mis à jour.

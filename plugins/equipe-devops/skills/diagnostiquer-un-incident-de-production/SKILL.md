@@ -1,18 +1,15 @@
 ---
 name: diagnostiquer-un-incident-de-production
-description: "WF-07 du rôle DevOps : diagnostiquer un incident de production. À déclencher : restaurer le service, puis comprendre. Déclenché par une alerte, un signalement ou une anomalie relevée par WF-05. Autonomie maximale : Niv. 1 diagnostic, Niv. 4 confinement."
+description: "DevOps — quand : une alerte ou un signalement, des utilisateurs touchés maintenant. Restaurer d'abord, comprendre ensuite. Pas pour : une panne hors production ou sans impact (diagnostiquer-une-defaillance-de-service)."
 ---
 
 # WF-07 — Diagnostiquer un incident de production
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 1 diagnostic, Niv. 4 confinement — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 1 diagnostic, Niv. 4 confinement.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Objectif / déclencheur** : restaurer le service, puis comprendre. Déclenché par une alerte, un signalement ou une anomalie relevée par WF-05.
 - **Étapes** :

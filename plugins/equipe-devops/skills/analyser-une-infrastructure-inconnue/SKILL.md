@@ -1,18 +1,15 @@
 ---
 name: analyser-une-infrastructure-inconnue
-description: "WF-01 du rôle DevOps : analyser une infrastructure inconnue. À déclencher : première intervention sur un environnement, ou documentation jugée non fiable. Autonomie maximale : Niv. 1."
+description: "DevOps — quand : première intervention sur un environnement, ou documentation jugée non fiable. Cartographier avant de toucher."
 ---
 
 # WF-01 — Analyser une infrastructure inconnue
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 1 — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 1.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Objectif / déclencheur** : première intervention sur un environnement, ou documentation jugée non fiable.
 - **Prérequis** : accès en lecture, et liste des actions interdites connue.

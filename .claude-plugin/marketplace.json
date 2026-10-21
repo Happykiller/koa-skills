@@ -2,7 +2,7 @@
   "name": "koa-skills",
   "description": "Les skills du framework agentique KoA : gestes de rôle, garde-fou de déploiement et de fusion, QG de cluster.",
   "owner": { "name": "Happykiller" },
-  "metadata": { "version": "0.3.0" },
+  "metadata": { "version": "0.4.0" },
   "plugins": [
     {
       "name": "koa",
@@ -20,6 +20,12 @@
       "name": "equipe-devops",
       "source": "./plugins/equipe-devops",
       "description": "Les workflows du rôle DevOps, en skills.",
+      "category": "development"
+    },
+    {
+      "name": "equipe-tech",
+      "source": "./plugins/equipe-tech",
+      "description": "Les gestes du rôle Tech, en skills : corriger, implémenter, vérifier avant de livrer, relire.",
       "category": "development"
     }
   ]

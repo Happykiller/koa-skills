@@ -1,6 +1,6 @@
 {
   "name": "equipe-devops",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Les vingt workflows du rôle DevOps de l'équipe KoA, en skills : analyser une infrastructure, déployer, revenir en arrière, diagnostiquer, sauvegarder, réduire les coûts… Le raisonnement reste dans le profil equipe/devops de la librairie KoA.",
   "author": {
     "name": "Happykiller"

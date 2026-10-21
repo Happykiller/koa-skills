@@ -24,6 +24,13 @@ FUITES = [
     (r"[\w.+-]+@[\w-]+\.[\w.]+", "adresse électronique"),
     (r"\bAGENTS\.md\b", "format d'un autre outil"),
 ]
+# Toutes les descriptions de skills sont chargées dans le contexte de chaque session : chaque caractère se
+# paie à chaque tour, pour chaque agent. Une description dit quand se déclencher, pas ce que la skill fait
+# en détail — le corps est là pour ça (0.3.0 : 24 descriptions, 7 400 caractères).
+BUDGET_DESCRIPTION = 260
+BUDGET_TOTAL = 6000
+DECLENCHEUR = re.compile(r"\bquand\b|\bpar /|\bà déclencher\b", re.I)
+
 # L'adresse d'installation d'un plugin a la forme d'une adresse électronique sans en être une.
 FAUX_POSITIFS = re.compile(r"^[a-z0-9-]+@koa-skills$")
 
@@ -52,7 +59,7 @@ def plugins():
 
 
 def verifier():
-    fautes = []
+    fautes, total = [], 0
     marche, entrees = plugins()
     dossiers = sorted(d for d in os.listdir(os.path.join(RACINE, "plugins")))
     noms = sorted(p["name"] for p in entrees)
@@ -72,8 +79,17 @@ def verifier():
                 continue
             if fm.get("name") != nom:
                 fautes.append(f"{p['name']}:{nom} : name « {fm.get('name')} » différent du dossier")
-            if not fm.get("description") or len(fm["description"]) > 1024:
-                fautes.append(f"{p['name']}:{nom} : description absente ou au-delà de 1024 caractères")
+            description = fm.get("description") or ""
+            if not description or len(description) > BUDGET_DESCRIPTION:
+                fautes.append(f"{p['name']}:{nom} : description absente ou au-delà de "
+                              f"{BUDGET_DESCRIPTION} caractères ({len(description)})")
+            elif not DECLENCHEUR.search(description):
+                fautes.append(f"{p['name']}:{nom} : la description ne dit pas quand se déclencher "
+                              "(« quand : … » ou « par /… »)")
+            total += len(description)
+    if total > BUDGET_TOTAL:
+        fautes.append(f"les descriptions de skills pèsent {total} caractères, au-delà de {BUDGET_TOTAL} : "
+                      "chaque session les charge toutes")
     for dossier, _, fichiers in os.walk(RACINE):
         if os.sep + ".git" in dossier + os.sep:
             continue

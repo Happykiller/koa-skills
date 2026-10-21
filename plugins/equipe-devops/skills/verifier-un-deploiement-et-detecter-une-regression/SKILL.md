@@ -1,18 +1,15 @@
 ---
 name: verifier-un-deploiement-et-detecter-une-regression
-description: "WF-05 du rôle DevOps : vérifier un déploiement et détecter une régression. Objectif : prouver que la production fait ce qu'elle doit, et rien de plus. Autonomie maximale : Niv. 1."
+description: "DevOps — quand : juste après un déploiement, prouver que la production fait ce qu'elle doit et rien de plus. Pas pour : déployer (preparer-et-realiser-un-deploiement)."
 ---
 
 # WF-05 — Vérifier un déploiement et détecter une régression
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 1 — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 1.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Objectif** : prouver que la production fait ce qu'elle doit, et rien de plus.
 - **Entrées** : versions attendues, liste des parcours critiques, états de référence.

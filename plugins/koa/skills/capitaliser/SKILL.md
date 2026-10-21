@@ -1,6 +1,6 @@
 ---
 name: capitaliser
-description: "Capitaliser une session dans un cluster du framework agentique KoA : relire ce qui s'est passé, et ranger chaque acquis au bon étage — le dépôt de la stack, le QG du cluster, ou une proposition d'évolution d'un livre de KoA ou d'une skill de la marketplace, rédigée en issue que l'humain ouvre. Écrit jusqu'au QG, propose au-dessus, toujours sans nom de client ni de projet. Propose avant d'écrire. À déclencher en fin de session d'un agent d'équipe, ou par /koa:clore."
+description: "Ranger ce qu'une session de cluster KoA a appris au bon étage : dépôt de la stack, QG, ou proposition d'évolution d'un livre ou d'une skill. Écrit sans faire valider jusqu'au QG. Par /koa:capitaliser ou /koa:clore. Hors cluster : /capitalize."
 ---
 
 # Capitaliser au bon étage
@@ -27,6 +27,10 @@ Liste, sans filtrer encore :
 Ne garde que ce qui est **durable** (vrai dans trois mois), **non déductible** (pas déjà dans le code, un
 README ou l'historique git) et **réutilisable**. Le reste est **écarté**, et dit comme tel.
 
+**Rien ne passe : arrête-toi là.** Aucune écriture, pas même une ligne d'`HISTORY.md` ni un `maj:`, donc
+aucune branche au QG — une ligne « rien à capitaliser » dans le compte rendu. C'est l'issue normale d'une
+session courte, pas un manque.
+
 ## 3. Ranger — le tamis, dans cet ordre
 
 La première réponse oui décide. **Une chose monte aussi haut que sa généralité prouvée, jamais plus haut.**
@@ -49,7 +53,7 @@ Au QG, la destination dépend de la nature :
 | Terme métier | `glossaire.md` |
 | Fait d'environnement commun : la distro, un outil présent ou absent, la forge | la section « Les environnements » de `$KOA_QG/CLAUDE.md`, une fois pour l'équipe |
 | Ce que **ton rôle** a appris de sa façon de travailler ici | `equipe/<rôle>.md` |
-| La mission elle-même | une ligne de `HISTORY.md` |
+| Une mission **livrée** (sa fiche close) — pas la session | une ligne de `HISTORY.md`, écrite par l'orchestrateur qui la clôt : un seul rédacteur, pas de conflit |
 
 Un fait d'environnement **n'est pas un acquis de rôle**, même découvert en jouant le tien : « `python`
 n'existe pas, seulement `python3` » vaut pour chaque agent de la distro. Rangé dans `equipe/<rôle>.md`,
@@ -90,13 +94,14 @@ Pour un livre **de l'opérateur** (une armoire à lui), lis le chapitre puis pro
   qu'**après fusion** : l'orchestrateur, qui clôt en dernier, relit le QG fusionné et ramène un même fait
   à un seul endroit (`koa:clore`, « Pousser »).
 - **Index d'abord** : toute page nouvelle rejoint le `README.md` de son dossier dans le même geste.
-- Le **pourquoi**, jamais le seul quoi ; le champ `maj:` des pages touchées ; une ligne d'`HISTORY.md`.
+- Le **pourquoi**, jamais le seul quoi ; le champ `maj:` des pages touchées — et d'elles seules.
 - Ce qui **contredit** une page existante — surtout une loi — est un arrêt : propose, ne tranche pas.
 
-## 5. Proposer, puis écrire
+## 5. Écrire, puis rendre compte
 
-**N'écris rien avant validation**, sauf appelé par `/koa:clore`, qui écrit ce qui passe les filtres et
-s'arrête sur une contradiction. Présente :
+**Écris sans faire valider**, appelé seul comme par `/koa:clore` : jusqu'au QG, le tri **est** le travail,
+et un agent de cluster qui attend une validation attend souvent un humain absent. Ce qui contredit une
+page existante s'arrête (§ 4) ; ce qui vise N2 ou N1 se propose, toujours. Le compte rendu :
 
 ```
 ## Écrit au dépôt <nom>      - [DAT/cache.md] … → pourquoi

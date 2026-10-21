@@ -1,18 +1,15 @@
 ---
 name: diagnostiquer-une-defaillance-de-service
-description: "WF-10 du rôle DevOps : diagnostiquer une défaillance de service. À déclencher : trouver la cause d'un service arrêté, en boucle de redémarrage, en échec de santé, ou « sain » mais inutile. Autonomie maximale : Niv. 1–2 ; correctif : Niv. 3 hors production, Niv. 4 en production."
+description: "DevOps — quand : un service précis arrêté, en boucle de redémarrage, en échec de santé ou « sain » mais inutile, hors urgence. Pas pour : une production touchée maintenant (diagnostiquer-un-incident-de-production)."
 ---
 
 # WF-10 — Diagnostiquer une défaillance de service
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 1–2 ; correctif : Niv. 3 hors production, Niv. 4 en production — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 1–2 ; correctif : Niv. 3 hors production, Niv. 4 en production.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Objectif / déclencheur** : trouver la cause d'un service arrêté, en boucle de redémarrage, en échec de santé, ou « sain » mais inutile.
 - **Étapes** :

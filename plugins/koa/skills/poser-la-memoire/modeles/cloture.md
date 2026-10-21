@@ -66,7 +66,13 @@ problème et tu attends, dans ces cas et ceux-là seulement :
   skill lui-même) : tu ne forces rien côté remote, tu rapportes et tu passes à la suite ;
 - un **conteneur tourne** sans être rattaché à un compose de ce projet : tu ne l'arrêtes pas ;
 - un dépôt **reste sale** après commit (sous-module bougé, artefact non ignoré, conflit) ;
-- un dépôt est en état intermédiaire : rebase, merge ou cherry-pick en cours.
+- un dépôt est en état intermédiaire : rebase, merge ou cherry-pick en cours ;
+- les **tests du dépôt échouent** sur ce que tu t'apprêtes à committer : un rouge ne part pas sous
+  le nom d'une clôture.
+
+**La clôture se proportionne à la session.** Rien de modifié, rien de non poussé, rien appris, aucun
+compose qui tourne : le recensement suffit, et le rapport tient en une ligne. Chaque étape qui n'a
+rien à faire se dit en un mot et se saute — ce sont les gestes à vide qui rendent une clôture longue.
 
 ## Interdits absolus
 
@@ -114,13 +120,16 @@ Pour chaque dépôt du périmètre :
 
 1. `git status --porcelain` et `git diff` — **lis** avant de stager. Ce que tu n'as pas lu, tu ne
    le committes pas.
-2. Examine les fichiers non suivis **un par un**. Un artefact de build, un log, un dossier de
+2. Du **code** a changé : lance les tests du dépôt (la commande de son `CLAUDE.md` ou de son README),
+   et garde la dernière ligne de leur sortie pour le rapport. Pas de commande connue : dis-le, ne
+   l'invente pas.
+3. Examine les fichiers non suivis **un par un**. Un artefact de build, un log, un dossier de
    dépendances ne se committe pas : il rejoint `.gitignore` (et c'est un commit à part).
-3. **Découpe par sujet**, pas par session. Trois sujets touchés dans la journée font trois
+4. **Découpe par sujet**, pas par session. Trois sujets touchés dans la journée font trois
    commits, pas un « wip fin de journée » que personne ne saura relire dans six mois.
-4. Message de commit : reprends la convention réelle du dépôt (`git log --oneline -20`) et les
+5. Message de commit : reprends la convention réelle du dépôt (`git log --oneline -20`) et les
    règles de `docs/KB/REGLES/process.md`. Décris **l'effet obtenu**, pas la liste des fichiers.
-5. Ne fabrique pas un commit vide pour « marquer la fin » : un dépôt sans modification reste sans
+6. Ne fabrique pas un commit vide pour « marquer la fin » : un dépôt sans modification reste sans
    commit, et c'est un résultat normal.
 
 ## Étape 4 — pousser
@@ -149,7 +158,8 @@ a pu tirer du remote en début de session, ce skill le pousse vers le remote en 
 
 ## Étape 6 — arrêter les conteneurs
 
-Uniquement ce qui appartient au projet, stack par stack, depuis le dossier du compose :
+`docker compose ls` vide au recensement : rien à arrêter, l'étape se saute. Sinon, uniquement ce
+qui appartient au projet, stack par stack, depuis le dossier du compose :
 
 ```bash
 docker compose -f <fichier> down       # sans -v : les volumes survivent
@@ -186,19 +196,20 @@ Court, factuel, et honnête sur ce qui n'a pas pu être refermé :
 ## Clôture — <projet>
 
 Capitalisation : 2 pages KB enrichies, 1 créée, 1 ligne HISTORY, 0 outil.
+Tests : api « 212 passed », front « 48 passed ».
 
 | Dépôt        | Commits | Push       | État final |
 | ---          | ---     | ---        | ---        |
-| gold_server  | 2       | ok develop | clean      |
-| gold_front   | 1       | ok develop | clean      |
-| gold         | 0       | —          | clean      |
+| api          | 2       | ok develop | clean      |
+| front        | 1       | ok develop | clean      |
+| socle        | 0       | —          | clean      |
 
 Synchro de données : `/sync-fixtures` exécuté, poussé sans conflit.
 
-Conteneurs : stack `gold` arrêtée (4 services). Aucun conteneur du projet encore en vie.
+Conteneurs : stack `socle` arrêtée (4 services). Aucun conteneur du projet encore en vie.
 
 Non refermé :
-- `gold_extension` : push rejeté, 3 commits d'avance côté remote — à rebaser à la main.
+- `extension` : push rejeté, 3 commits d'avance côté remote — à rebaser à la main.
 ```
 
 S'il n'y a rien dans « Non refermé », écris-le explicitement. **La session est close** est une

@@ -1,18 +1,15 @@
 ---
 name: evaluer-la-resilience-d-une-architecture
-description: "WF-16 du rôle DevOps : évaluer la résilience d'une architecture. À déclencher : connaître ce qui casse et ce qui ne se voit pas, avant que cela arrive. Déclenché par une nouvelle architecture, un incident de dépendance ou une revue de fiabilité. Autonomie maximale : Niv. 1–2."
+description: "DevOps — quand : une nouvelle architecture, un incident de dépendance, ou une revue de fiabilité demande ce qui casse et ce qui ne se voit pas."
 ---
 
 # WF-16 — Évaluer la résilience d'une architecture
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 1–2 — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 1–2.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Objectif / déclencheur** : connaître ce qui casse et ce qui ne se voit pas, avant que cela arrive. Déclenché par une nouvelle architecture, un incident de dépendance ou une revue de fiabilité.
 - **Étapes** :

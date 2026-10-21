@@ -1,18 +1,15 @@
 ---
 name: mettre-en-place-une-strategie-d-observabilite
-description: "WF-12 du rôle DevOps : mettre en place une stratégie d'observabilité. À déclencher : qu'aucune défaillance connue ne passe inaperçue. Déclenché par un nouvel environnement, un incident non détecté ou une revue de fiabilité (WF-19). Autonomie maximale : Niv. 2–3."
+description: "DevOps — quand : un nouvel environnement, un incident que rien n'a détecté, ou une revue de fiabilité qui trouve un angle mort."
 ---
 
 # WF-12 — Mettre en place une stratégie d'observabilité
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 2–3 — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 2–3.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Objectif / déclencheur** : qu'aucune défaillance connue ne passe inaperçue. Déclenché par un nouvel environnement, un incident non détecté ou une revue de fiabilité (WF-19).
 - **Étapes** :

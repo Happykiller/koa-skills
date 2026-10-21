@@ -1,18 +1,15 @@
 ---
 name: automatiser-une-operation-recurrente
-description: "WF-15 du rôle DevOps : automatiser une opération récurrente. À déclencher : troisième exécution manuelle de la même opération, ou incident causé par une erreur de recopie manuelle. Autonomie maximale : Niv. 2–3."
+description: "DevOps — quand : la troisième exécution manuelle d'une même opération, ou un incident né d'une recopie manuelle."
 ---
 
 # WF-15 — Automatiser une opération récurrente
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 2–3 — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 2–3.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Déclencheur** : troisième exécution manuelle de la même opération **[OBS E25]**, ou incident causé par une erreur de recopie manuelle **[OBS E03]**.
 - **Étapes** :
