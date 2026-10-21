@@ -1,6 +1,6 @@
 ---
 name: clore
-description: "Clore une session de travail d'un agent dans un cluster du framework agentique KoA : capitaliser au bon étage (koa:capitaliser), committer et pousser chaque dépôt touché — dépôts de la stack, seed, QG du cluster, par une branche que l'orchestrateur fusionne —, synchroniser les données, arrêter les conteneurs du projet, puis vérifier que tout est propre. Autonome, ne s'arrête que sur anomalie. À déclencher en fin de session, par /koa:clore."
+description: "Fin de session d'un agent de cluster KoA : capitaliser, tester, committer, pousser (QG par une branche), arrêter ses conteneurs, vérifier. Autonome, proportionnée à la session. Par /koa:clore, ou quand ta mission est close. Hors cluster : /cloture."
 ---
 
 # Clore la session
@@ -40,7 +40,13 @@ Tu enchaînes sans demander de validation. Tu t'arrêtes, exposes et attends si 
 - un **push est rejeté**, ou la forge du QG prend des PR et refuse celle que tu ouvres ;
 - une **synchro de données** échoue ou signale un conflit ;
 - un **conteneur** tourne sans appartenir à un compose d'un dépôt du périmètre ;
-- un dépôt **reste sale** après commit, ou est en rebase, merge ou cherry-pick.
+- un dépôt **reste sale** après commit, ou est en rebase, merge ou cherry-pick ;
+- les **tests du dépôt échouent** sur ce que tu t'apprêtes à committer.
+
+**La clôture se proportionne à la session.** Rien de modifié ni de non poussé, rien appris, aucun compose
+qui tourne : le recensement suffit, et le rapport tient en une ligne. Le QG n'entre au périmètre que si
+la capitalisation y a **écrit** : sans écriture, pas de branche `capitalisation/…`, pas de PR, rien à
+fusionner pour l'orchestrateur. Une étape sans objet se dit en un mot et se saute.
 
 ## Interdits absolus
 
@@ -65,7 +71,7 @@ docker ps --format '{{.Names}}\t{{.Label "com.docker.compose.project"}}'
 grep -ril -E 'name: .*sync|description: .*(sync|synchro)' "$HOME"/*/.claude/skills/*/SKILL.md 2>/dev/null
 ```
 
-Le périmètre : **les dépôts modifiés ou non poussés**, plus le QG. Confronte-le à la carte des dépôts du
+Le périmètre : **les dépôts modifiés ou non poussés** — le QG compris, s'il l'est après l'étape 2. Confronte-le à la carte des dépôts du
 QG (`$KOA_QG/CLAUDE.md`) : un dépôt sur le disque absent de la carte se traite **et** se signale. Ordre :
 les dépôts de la stack, puis la seed, puis **le QG en dernier** — la capitalisation y écrit.
 
@@ -77,10 +83,13 @@ un arrêt. S'il n'est pas disponible, dis-le et poursuis sans ce volet.
 ## 3. Committer, dépôt par dépôt
 
 1. `git status --porcelain` et `git diff` — **lis** avant de stager.
-2. Les fichiers non suivis **un par un** : un artefact de build ou un log rejoint `.gitignore`.
-3. **Un commit par sujet**, avec la convention du dépôt (`git log --oneline -20`) et les règles de
+2. Du **code** a changé : lance les tests du dépôt (la commande de son `CLAUDE.md`, de son README ou de
+   la carte du QG), et garde la dernière ligne de leur sortie pour le rapport. Pas de commande connue :
+   dis-le, ne l'invente pas.
+3. Les fichiers non suivis **un par un** : un artefact de build ou un log rejoint `.gitignore`.
+4. **Un commit par sujet**, avec la convention du dépôt (`git log --oneline -20`) et les règles de
    `$KOA_QG/docs/KB/REGLES/process.md`. Décris l'effet, pas la liste des fichiers.
-4. Pas de commit vide pour « marquer la fin ».
+5. Pas de commit vide pour « marquer la fin ».
 
 ## 4. Pousser
 
@@ -118,8 +127,9 @@ Chaque skill de sync data trouvée, **avant** l'arrêt des conteneurs. Aucune : 
 
 ## 6. Arrêter les conteneurs
 
-Seulement ceux des composes du périmètre, depuis leur dossier : `docker compose -f <fichier> down`, sans
-`-v`. Ce qui n'est pas identifié reste en vie et part dans le rapport.
+`docker compose ls` vide au recensement : l'étape se saute. Sinon, seulement ceux des composes du
+périmètre, depuis leur dossier : `docker compose -f <fichier> down`, sans `-v`. Ce qui n'est pas
+identifié reste en vie et part dans le rapport.
 
 ## 7. Vérifier, puis rendre compte
 
@@ -135,7 +145,8 @@ docker ps --format '{{.Names}}\t{{.Label "com.docker.compose.project"}}'
 
 ```
 ## Clôture — <rôle>, cluster <cluster>
-Capitalisation : 1 page au dépôt, 1 consigne au QG, 1 issue rédigée à ouvrir (<lien prérempli>).
+Capitalisation : 1 page au dépôt, 1 consigne au QG, 1 issue rédigée à ouvrir (<lien prérempli>) — ou « rien ».
+Tests : <dépôt> « <dernière ligne de la sortie> », par dépôt dont le code a changé.
 | Dépôt | Commits | Push | État final |
 QG : PR <lien>, à relire par un autre rôle — ou branche capitalisation/<rôle>-…, à fusionner par l'orchestrateur.
 Conteneurs : …
