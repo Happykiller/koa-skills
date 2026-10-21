@@ -5,6 +5,7 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -117,6 +118,71 @@ class GardeFous(unittest.TestCase):
         self.appeler("kubectl apply --token=SECRET-123 --context prod-a")
         self.assertNotIn("SECRET-123", json.dumps(self.journal()))
 
+    # La 0.2.0 cherchait ses motifs dans la commande brute, et refusait tout ce qui suit — dont
+    # `docker compose down`, geste prescrit par koa:clore. Avec et sans configuration.
+    LEGITIMES = [
+        'grep -rn "kubectl apply" docs/',
+        'git commit -m "doc : quand lancer terraform apply"',
+        "kubectl logs deploy/scale-worker",
+        "kubectl -n recette get pods",
+        "terraform plan -out=apply.tfplan",
+        "ansible-playbook --syntax-check site.yml",
+        "ansible-playbook site.yml --check",
+        "docker compose up -d db",
+        "docker compose -f compose.test.yml down",
+        "docker-compose down -v",
+        "helm template app ./chart",
+        "echo helm upgrade",
+        "cat notes.txt | grep 'docker push'",
+    ]
+
+    def test_ce_qui_ne_fait_que_parler_d_un_deploiement_passe(self):
+        for commande in self.LEGITIMES:
+            with self.subTest(commande=commande):
+                self.assertIsNone(self.appeler(commande))
+        self.configurer(self.CONF)
+        for commande in self.LEGITIMES:
+            with self.subTest(commande=commande, configure=True):
+                self.assertIsNone(self.appeler(commande))
+        self.assertEqual(self.journal(), [])
+
+    def test_une_enveloppe_ne_cache_pas_le_deploiement(self):
+        self.configurer(self.CONF)
+        for commande in ["sudo -u ops kubectl apply -f x.yaml --context prod-a",
+                         "env KUBECONFIG=k timeout 30 helm upgrade app ./chart --kube-context prod-a",
+                         "bash -c 'kubectl -n app apply -f x.yaml --context prod-a'",
+                         "ssh -i cle bastion kubectl delete pod x --context prod-a",
+                         "xargs -n 1 kubectl apply --context prod-a -f",
+                         "/usr/local/bin/terraform -chdir=infra apply -var env=prod-a",
+                         "ansible-playbook -i prod-a site.yml"]:
+            with self.subTest(commande=commande):
+                self.assertEqual(self.appeler(commande)["permissionDecision"], "deny")
+
+    def test_un_compose_qui_vise_un_demon_distant_deploie(self):
+        self.configurer(self.CONF)
+        for commande in ["docker --context prod-a compose up -d",
+                         "DOCKER_HOST=ssh://prod-a docker compose up -d",
+                         "docker -H ssh://hote compose down"]:
+            with self.subTest(commande=commande):
+                self.assertEqual(self.appeler(commande)["permissionDecision"], "deny")
+
+    def test_chaque_segment_qui_deploie_nomme_sa_cible(self):
+        self.configurer(self.CONF)
+        d = self.appeler("kubectl apply -f a.yaml --context recette-a && helm upgrade app ./chart")
+        self.assertEqual(d["permissionDecision"], "deny")
+        self.assertIsNone(self.appeler(
+            "kubectl apply -f a.yaml --context recette-a && kubectl rollout status deploy/a --context recette-a"))
+
+    def test_une_session_dans_un_depot_de_la_stack_suit_le_qg(self):
+        qg = tempfile.mkdtemp()
+        os.makedirs(os.path.join(qg, ".claude"))
+        with open(os.path.join(qg, ".claude", "garde-fous.json"), "w", encoding="utf-8") as f:
+            json.dump(self.CONF, f)
+        with mock.patch.dict(os.environ, {"KOA_QG": qg}):
+            self.assertEqual(self.appeler("kubectl apply -f x.yaml --context prod-a")["permissionDecision"],
+                             "deny")
+            self.assertIsNone(self.appeler("kubectl apply -f x.yaml --context recette-a"))
+
 
 def charger_le_module():
     spec = importlib.util.spec_from_file_location("garde_fous", HOOK)
@@ -228,6 +294,80 @@ class Fusion(unittest.TestCase):
             journal = f.read()
         self.assertIn('"deny"', journal)
         self.assertNotIn("SECRET-456", journal)
+
+
+class GardeQuiPlante(unittest.TestCase):
+    """Un garde qui plante sortait en code 1 : Claude Code le lit comme une erreur non bloquante, et
+    le déploiement passait."""
+
+    def lancer(self, commande):
+        gf = charger_le_module()
+        entree = {"session_id": "s1", "tool_name": "Bash", "tool_input": {"command": commande}}
+        sortie = io.StringIO()
+        with mock.patch.dict(os.environ, {"CLAUDE_PLUGIN_DATA": tempfile.mkdtemp(),
+                                          "CLAUDE_PROJECT_DIR": tempfile.mkdtemp()}), \
+                mock.patch.object(gf, "decider", side_effect=RuntimeError("panne")), \
+                mock.patch.object(sys, "stdin", io.StringIO(json.dumps(entree))), \
+                mock.patch.object(sys, "stdout", sortie), \
+                mock.patch.object(sys, "stderr", io.StringIO()):
+            code = gf.main()
+        return code, sortie.getvalue()
+
+    def test_sur_un_deploiement_il_refuse(self):
+        code, sortie = self.lancer("kubectl apply -f x.yaml")
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(sortie)["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_ailleurs_il_le_dit_sans_bloquer(self):
+        self.assertEqual(self.lancer("ls -la"), (1, ""))
+
+
+@unittest.skipUnless(shutil.which("sh") and os.name != "nt", "le tri en sh se joue dans la distro")
+class TriEnSh(unittest.TestCase):
+    """`garde-fous.sh` ne démarre Python que si la commande nomme un outil de déploiement ou de
+    fusion, ou si le QG déclare ses propres commandes."""
+    SH = os.path.join(os.path.dirname(HOOK), "garde-fous.sh")
+
+    def lancer(self, commande, chemin=None, projet=None):
+        entree = {"tool_name": "Bash", "tool_input": {"command": commande}}
+        env = dict(os.environ, CLAUDE_PROJECT_DIR=projet or tempfile.mkdtemp(),
+                   CLAUDE_PLUGIN_DATA=tempfile.mkdtemp())
+        env.pop("KOA_QG", None)
+        if chemin is not None:
+            env["PATH"] = chemin
+        r = subprocess.run([shutil.which("sh"), self.SH], input=json.dumps(entree), capture_output=True,
+                           text=True, encoding="utf-8", env=env)
+        return r.returncode, r.stdout
+
+    @staticmethod
+    def sans_python():
+        """Un PATH qui a tout ce qu'il faut au script, sauf python3."""
+        outils = tempfile.mkdtemp()
+        for outil in ("cat", "grep", "dirname"):
+            os.symlink(shutil.which(outil), os.path.join(outils, outil))
+        return outils
+
+    def test_une_commande_ordinaire_ne_lance_pas_python(self):
+        # Sans python3, seul le tri peut répondre : s'il laisse passer sans un mot, c'est lui.
+        self.assertEqual(self.lancer("ls -la", chemin=self.sans_python()), (0, ""))
+
+    def test_sans_python_un_deploiement_est_refuse(self):
+        code, sortie = self.lancer("kubectl apply -f x.yaml", chemin=self.sans_python())
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(sortie)["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_avec_python_le_jugement_fin_reprend(self):
+        self.assertEqual(self.lancer("docker compose down"), (0, ""))
+        code, sortie = self.lancer("terraform apply")
+        self.assertEqual(json.loads(sortie)["hookSpecificOutput"]["permissionDecision"], "ask")
+
+    def test_un_qg_qui_declare_ses_commandes_est_toujours_lu(self):
+        projet = tempfile.mkdtemp()
+        os.makedirs(os.path.join(projet, ".claude"))
+        with open(os.path.join(projet, ".claude", "garde-fous.json"), "w", encoding="utf-8") as f:
+            json.dump({"deploiement": {"commandes": [r"\bdeployer\.sh\b"], "cibles_permises": ["r"]}}, f)
+        code, sortie = self.lancer("./deployer.sh prod", projet=projet)
+        self.assertEqual(json.loads(sortie)["hookSpecificOutput"]["permissionDecision"], "deny")
 
 
 if __name__ == "__main__":

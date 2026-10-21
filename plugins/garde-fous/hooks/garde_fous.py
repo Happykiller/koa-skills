@@ -48,19 +48,45 @@ SHA_COMPLET = re.compile(r"[0-9a-fA-F]{40}")
 
 # Ce qui ressemble à un déploiement quand le QG n'en dit pas plus. Une liste blanche de verbes qui
 # changent un environnement : lire (get, describe, plan, status) n'est jamais un déploiement.
+#
+# Chaque motif est essayé sur un segment réécrit à partir de son mot de commande, et ne compte que
+# s'il commence sur ce mot (ou sur une affectation qui le précède) : `grep "kubectl apply"`, un
+# message de commit qui en parle ou `kubectl logs deploy/scale-worker` ne déploient rien, et la
+# version 0.2.0, qui cherchait dans la commande brute, les refusait. Le verbe est la sous-commande
+# (les options et leur valeur sautées), pas un mot rencontré plus loin : `plan -out=apply.tfplan`.
+_OPTIONS = r"(?:\s+-\S+(?:\s+[^-\s]\S*)?)*"
 COMMANDES_PAR_DEFAUT = [
-    r"\bkubectl\b.*\b(apply|create|delete|replace|patch|rollout|scale|set)\b",
-    r"\bhelm\b.*\b(install|upgrade|uninstall|rollback)\b",
-    r"\bterraform\b.*\b(apply|destroy|import)\b",
-    r"\btofu\b.*\b(apply|destroy|import)\b",
-    r"\baz\b.*\b(create|update|delete|deploy|up|swap|restart)\b",
-    r"\baws\b.*\b(deploy|update-service|create-deployment|put-|delete-)",
-    r"\bgcloud\b.*\b(deploy|update|delete)\b",
-    r"\bdocker\b.*\bcompose\b.*\b(up|down)\b",
-    r"\bdocker\b.*\b(push|stack deploy)\b",
-    r"\b(vercel|netlify|fly|flyctl|railway|heroku)\b.*\b(deploy|up|--prod)\b",
-    r"\bansible-playbook\b",
+    r"\bkubectl" + _OPTIONS + r"\s+(apply|create|delete|replace|patch|rollout|scale|set|edit|drain)\b",
+    r"\bhelm" + _OPTIONS + r"\s+(install|upgrade|uninstall|rollback)\b",
+    r"\b(terraform|tofu)(?:\s+-\S+)*\s+(apply|destroy|import)\b",
+    r"\baz\b.*\s(create|update|delete|deploy|up|swap|restart)\b",
+    r"\baws\b.*\s(deploy|update-service|create-deployment|put-|delete-)",
+    r"\bgcloud\b.*\s(deploy|update|delete)\b",
+    # Un compose local (la base de test, la clôture qui arrête ses conteneurs) n'est pas un
+    # déploiement ; il le devient quand il vise un démon distant.
+    r"\bDOCKER_(HOST|CONTEXT)=\S+.*\bdocker(-compose)?\b.*\s(up|down)\b",
+    r"\bdocker\b.*\s(--context|-c|-H|--host)[\s=]\S+.*\s(compose\s.*\s)?(up|down)\b",
+    r"\bdocker-compose\b.*\s(-H|--host)[\s=]\S+.*\s(up|down)\b",
+    r"\bdocker(?:\s+-\S+(?:\s+[^-\s]\S*)?)*\s+(push|stack\s+deploy)\b",
+    r"\b(vercel|netlify|fly|flyctl|railway|heroku)\b.*\s(deploy|up|--prod)\b",
+    r"\bansible-playbook\b(?!.*\s--(syntax-check|check|list-hosts|list-tasks|list-tags)\b)",
 ]
+
+# Ce qui précède le vrai mot de commande sans en être un, avec celles de leurs options qui prennent
+# une valeur (sautée avec elles) ; `timeout` prend en plus une durée.
+ENVELOPPES = {
+    "sudo": {"-u", "-g", "-C", "-D", "-h", "-p", "-r", "-t", "-U"}, "doas": {"-u", "-C"},
+    "env": {"-u", "-C", "-S"}, "nice": {"-n"}, "timeout": {"-s", "-k"}, "watch": {"-n", "-d"},
+    "xargs": {"-n", "-P", "-I", "-L", "-s", "-d", "-a", "-E"}, "stdbuf": {"-i", "-o", "-e"},
+    "time": set(), "nohup": set(), "exec": set(), "command": set(),
+}
+COQUILLES = {"sh", "bash", "zsh", "dash"}
+
+# Le filet grossier, quand le jugement fin a planté : un mot d'outil de déploiement ou de fusion.
+# Le même que celui de `garde-fous.sh`, qui ne lance Python que s'il le voit.
+SUSPECT = (r"kubectl|helm|terraform|tofu|\baz\b|\baws\b|gcloud|docker|vercel|netlify|\bfly|railway"
+           r"|heroku|ansible|\bgh\b")
+AFFECTATION = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 
 
 def dossier_journal():
@@ -72,7 +98,8 @@ def dossier_journal():
 
 def journaliser(entree, decision, motif):
     """Une ligne par décision qui n'est pas un simple passage. Jamais la commande elle-même : elle
-    peut porter un secret ; le motif et la cible suffisent à retrouver ce qui s'est passé."""
+    peut porter un secret ; le motif et la cible suffisent à retrouver ce qui s'est passé. Rend
+    l'erreur quand la ligne ne s'écrit pas, pour qu'elle rejoigne la raison dite à l'agent."""
     try:
         ligne = {
             "quand": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
@@ -83,10 +110,12 @@ def journaliser(entree, decision, motif):
         }
         with open(os.path.join(dossier_journal(), "decisions.log"), "a", encoding="utf-8") as f:
             f.write(json.dumps(ligne, ensure_ascii=False) + "\n")
+        return None
     except OSError as e:
-        # Le journal est la seconde moitié de la loi « échouer sans bruit est interdit » : s'il ne
-        # s'écrit pas, on le dit sur stderr, que Claude Code relaie comme erreur de hook.
+        # Le journal est la seconde moitié de la loi « échouer sans bruit est interdit » : stderr
+        # seul, sous un code 0, personne ne le lit — l'erreur part aussi dans la raison.
         print(f"garde-fous : journal impossible à écrire ({e})", file=sys.stderr)
+        return f"journal impossible à écrire ({e})"
 
 
 def repondre(decision, raison):
@@ -104,8 +133,8 @@ def nomme(commande, cible):
 
 
 def lire_configuration(projet):
-    chemin = os.path.join(projet, ".claude", "garde-fous.json")
-    if not os.path.isfile(chemin):
+    chemin = chemin_de_configuration(projet)
+    if chemin is None:
         return None, None
     try:
         with open(chemin, encoding="utf-8") as f:
@@ -212,6 +241,84 @@ def juger_fusion(commande):
     return None, None
 
 
+def textes_a_juger(mots, profondeur=0):
+    """Les textes d'un segment qu'un motif de déploiement doit juger, chacun avec la fin de son mot
+    de commande : un motif ne compte que s'il commence avant. Les affectations de tête restent dans
+    le texte (`DOCKER_HOST=… docker compose up`), les enveloppes en sortent (`sudo kubectl …`), et
+    ce qu'une coquille (`bash -c "…"`) ou `ssh hôte …` exécute est jugé à son tour."""
+    affectations, i = [], 0
+    while i < len(mots):
+        mot = mots[i]
+        if AFFECTATION.match(mot):
+            affectations.append(mot)
+        elif mot.rsplit("/", 1)[-1] in ENVELOPPES:
+            nom = mot.rsplit("/", 1)[-1]
+            i += 1
+            while i < len(mots) and (mots[i].startswith("-") or AFFECTATION.match(mots[i])):
+                if mots[i] in ENVELOPPES[nom]:
+                    i += 1  # la valeur de l'option, pas une commande
+                elif AFFECTATION.match(mots[i]):
+                    affectations.append(mots[i])
+                i += 1
+            if nom == "timeout" and i < len(mots):
+                i += 1  # la durée
+            continue
+        else:
+            break
+        i += 1
+    if i >= len(mots):
+        return []
+    nom = mots[i].rsplit("/", 1)[-1]
+    reste = mots[i + 1:]
+    if profondeur < 3 and nom in COQUILLES and "-c" in reste and reste.index("-c") + 1 < len(reste):
+        return textes_internes(reste[reste.index("-c") + 1], profondeur + 1)
+    if profondeur < 3 and nom == "ssh":
+        # Les options de ssh, puis l'hôte : ce qui suit est une commande lancée là-bas.
+        j = 0
+        while j < len(reste) and reste[j].startswith("-"):
+            j += 2 if reste[j] in ("-i", "-p", "-l", "-o", "-F", "-J") else 1
+        if j + 1 < len(reste):
+            return textes_internes(" ".join(reste[j + 1:]), profondeur + 1)
+        return []
+    tete = " ".join(affectations + [mots[i]])
+    return [(" ".join([tete] + reste), len(tete))]
+
+
+def textes_internes(commande, profondeur):
+    try:
+        segments = mots_par_segment(commande)
+    except ValueError:
+        return [(commande, len(commande))]
+    return [t for s in segments for t in textes_a_juger(s, profondeur)]
+
+
+def deploie(texte_et_borne, motifs):
+    texte, borne = texte_et_borne
+    return any((m := re.search(motif, texte)) and m.start() < borne for motif in motifs)
+
+
+def segments_qui_deploient(commande, motifs):
+    """Les textes des segments qui déploient. Une commande que shlex ne lit pas est jugée entière,
+    comme avant la 0.3.0 : pour un déploiement, on ne passe pas sur ce qu'on n'a pas su lire."""
+    try:
+        segments = mots_par_segment(commande)
+    except ValueError:
+        return [commande] if any(re.search(m, commande) for m in motifs) else []
+    textes = [t for s in segments for t in textes_a_juger(s)]
+    return [t[0] for t in textes if deploie(t, motifs)]
+
+
+def chemin_de_configuration(projet):
+    """Celle du projet, sinon celle du QG : une session ouverte dans un dépôt de la stack reste sous
+    les règles de son cluster (`KOA_QG`, posée par KoA dans les distros d'une seed)."""
+    for racine in (projet, os.environ.get("KOA_QG")):
+        if racine:
+            chemin = os.path.join(racine, ".claude", "garde-fous.json")
+            if os.path.isfile(chemin):
+                return chemin
+    return None
+
+
 def decider(entree, projet):
     """Rend (décision, raison) ; décision None quand la commande n'est ni une fusion à refuser, ni un
     déploiement."""
@@ -222,7 +329,8 @@ def decider(entree, projet):
     conf, erreur = lire_configuration(projet)
     dep = (conf or {}).get("deploiement") or {}
     motifs = dep.get("commandes") or COMMANDES_PAR_DEFAUT
-    if not any(re.search(m, commande) for m in motifs):
+    segments = segments_qui_deploient(commande, motifs)
+    if not segments:
         return None, None
 
     if erreur:
@@ -239,7 +347,9 @@ def decider(entree, projet):
         return "deny", (f"Garde-fous KoA : « {interdites[0]} » est une cible interdite aux agents dans "
                         f"{cluster}. Ce déploiement est un geste humain : prépare-le, et demande.")
     permises = dep.get("cibles_permises", [])
-    if any(nomme(commande, c) for c in permises):
+    # Chaque segment qui déploie nomme sa cible : `… recette-a && helm upgrade x` ne prête pas la
+    # cible du premier au second.
+    if all(any(nomme(s, c) for c in permises) for s in segments):
         return "allow-implicite", None
     liste = ", ".join(permises) if permises else "aucune"
     return "deny", (f"Garde-fous KoA : cette commande de déploiement ne nomme aucune cible permise de "
@@ -256,16 +366,28 @@ def main():
     if entree.get("tool_name") != "Bash":
         return 0
     projet = os.environ.get("CLAUDE_PROJECT_DIR") or entree.get("cwd") or os.getcwd()
-    decision, raison = decider(entree, projet)
+    try:
+        decision, raison = decider(entree, projet)
+    except Exception as e:  # noqa: BLE001 — un garde qui plante ne doit pas laisser passer
+        commande = (entree.get("tool_input") or {}).get("command") or ""
+        print(f"garde-fous : erreur interne ({type(e).__name__}: {e})", file=sys.stderr)
+        if not re.search(SUSPECT, commande):
+            return 1
+        decision, raison = "deny", (f"Garde-fous KoA : erreur interne du garde ({type(e).__name__}), "
+                                    "sur une commande qui ressemble à un déploiement ou à une fusion. "
+                                    "Refusée plutôt que laissée passer : signale-le à l'humain.")
     if decision is None:
         return 0
     if decision == "allow-implicite":
         # On ne dit pas « allow » : le flux normal des permissions continue, et un deny du projet
         # garde le dernier mot.
-        journaliser(entree, "permis", "cible permise nommée")
+        erreur = journaliser(entree, "permis", "cible permise nommée")
+        if erreur:
+            print(f"garde-fous : {erreur}", file=sys.stderr)
+            return 1
         return 0
-    journaliser(entree, decision, raison)
-    repondre(decision, raison)
+    erreur = journaliser(entree, decision, raison)
+    repondre(decision, raison + (f" (garde-fous : {erreur})" if erreur else ""))
     return 0
 
 
