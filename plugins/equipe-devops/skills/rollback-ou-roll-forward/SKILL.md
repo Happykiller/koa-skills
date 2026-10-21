@@ -1,18 +1,15 @@
 ---
 name: rollback-ou-roll-forward
-description: "WF-06 du rôle DevOps : rollback ou roll-forward. Objectif : rétablir le service le plus vite possible avec le moins de risque. À déclencher : régression confirmée par WF-05 ou WF-07. Autonomie maximale : Niv. 4."
+description: "DevOps — quand : une régression confirmée après un déploiement ; choisir et mener le retour arrière ou le correctif en avant."
 ---
 
 # WF-06 — Rollback ou roll-forward
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 4 — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 4.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Objectif** : rétablir le service le plus vite possible avec le moins de risque.
 - **Déclencheur** : régression confirmée par WF-05 ou WF-07.

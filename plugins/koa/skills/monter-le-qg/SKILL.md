@@ -1,6 +1,6 @@
 ---
 name: monter-le-qg
-description: "Monter ou remettre d'aplomb le QG d'un cluster selon le framework agentique KoA : le dépôt qui porte le contexte de tout un cluster (carte des dépôts, environnements, KB, plugins épinglés, garde-fou de déploiement). Idempotent : le premier passage crée, les suivants complètent sans rien écraser en silence. À déclencher quand on démarre un cluster, quand on ouvre le dépôt QG d'un cluster, ou quand on demande de vérifier qu'il est conforme."
+description: "Monter, compléter ou vérifier le QG d'un cluster KoA : carte des dépôts, environnements, KB, plugins épinglés, garde-fou. Idempotent. Quand : un cluster démarre, ou on ouvre son dépôt QG."
 ---
 
 # Monter le QG d'un cluster
@@ -63,7 +63,7 @@ qui contredit le framework sans le réécrire.
 | `.mcp.json` | — | seulement si des serveurs ont été déclarés ; secrets en `${NOM}` |
 
 Dans `.claude/settings.json`, active les plugins des rôles déclarés (`equipe-devops@koa-skills` pour le
-DevOps, …) et **toujours** `garde-fous@koa-skills`. Épingle la marketplace sur un tag (`"ref": "v…"`),
+DevOps, `equipe-tech@koa-skills` pour qui code ou relit, …) et **toujours** `garde-fous@koa-skills`. Épingle la marketplace sur un tag (`"ref": "v…"`),
 jamais sur une branche : un cluster ne suit pas `main` à son insu.
 
 **Claude Code protège le dossier `.claude/`** : y écrire demande l'accord de l'humain, même quand

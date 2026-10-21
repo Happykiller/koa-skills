@@ -1,18 +1,15 @@
 ---
 name: preparer-un-nouvel-environnement
-description: "WF-02 du rôle DevOps : préparer un nouvel environnement. Objectif : un environnement reproductible, isolé, observable et documenté avant toute mise en service. Autonomie maximale : Niv. 3 hors production, 4 en production."
+description: "DevOps — quand : créer un environnement (dev, recette, production) reproductible, isolé, observable et documenté avant sa mise en service."
 ---
 
 # WF-02 — Préparer un nouvel environnement
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 3 hors production, 4 en production — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 3 hors production, 4 en production.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Objectif** : un environnement reproductible, isolé, observable et documenté avant toute mise en service.
 - **Entrées** : besoins fonctionnels, criticité, données hébergées, dépendances.

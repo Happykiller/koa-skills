@@ -1,18 +1,15 @@
 ---
 name: effectuer-une-analyse-post-incident
-description: "WF-20 du rôle DevOps : effectuer une analyse post-incident. À déclencher : qu'un incident ne se reproduise pas. Déclenché par la clôture d'un incident (section 13.3). Autonomie maximale : Niv. 2."
+description: "DevOps — quand : un incident vient d'être clos. Chronologie, causes, actions pour qu'il ne se reproduise pas."
 ---
 
 # WF-20 — Effectuer une analyse post-incident
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 2 — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 2.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Objectif / déclencheur** : qu'un incident ne se reproduise pas. Déclenché par la clôture d'un incident (section 13.3).
 - **Étapes** :

@@ -1,6 +1,6 @@
 ---
 name: poser-la-memoire
-description: "Poser ou remettre d'aplomb la mémoire d'un projet pour Claude — sa base de connaissance docs/KB/, son CLAUDE.md, la capitalisation et la clôture de fin de session — selon qu'il est seul ou dans un cluster du framework agentique KoA (QG, dépôt de la stack, seed d'un agent). Idempotent : le premier passage crée, les suivants complètent sans rien écraser en silence. À déclencher pour monter le « ghost » d'un projet, sur un dépôt sans KB, ou quand on demande de vérifier sa mémoire."
+description: "Poser ou remettre d'aplomb la mémoire d'un projet (KB, CLAUDE.md, /capitalize, /cloture), seul ou dans un cluster. Idempotent. Quand : un projet sans KB, ou dont la mémoire a dérivé."
 ---
 
 # Poser la mémoire d'un projet

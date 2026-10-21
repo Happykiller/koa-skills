@@ -15,6 +15,7 @@ confiance**, et cloisonnée par les accès plutôt que par la consigne.
 | `koa` | `monter-le-qg` : monter, puis tenir conforme, le QG d'un cluster — le dépôt qui porte la carte de ses dépôts, ses environnements, sa KB, ses plugins épinglés · `poser-la-memoire` : le ghost — la KB et le `CLAUDE.md` d'un projet seul, ou leur répartition dans un cluster (QG, dépôt de la stack, seed d'un agent) · `capitaliser` : ranger ce qu'une session a appris au bon étage, écrit jusqu'au QG, proposé au-dessus · `clore` : la fin de session d'un agent de cluster, QG compris |
 | `garde-fous` | un hook qui refuse toute commande de déploiement visant une cible que le QG ne déclare pas permise, ou qu'il déclare interdite aux agents ; et toute fusion sans `--match-head-commit`, avec `--admin`, ou hors de l'orchestrateur |
 | `equipe-devops` | les vingt workflows du rôle DevOps : analyser une infrastructure, déployer, revenir en arrière, diagnostiquer, sauvegarder… |
+| `equipe-tech` | les gestes du rôle Tech : `corriger-une-anomalie` (test rouge d'abord), `implementer-une-evolution`, `verifier-avant-de-livrer` (diff relu, tests lancés et cités, « Pas vérifié » écrit), `relire-une-modification` (preuves rejouées, constats classés) |
 
 ## Installer
 
@@ -25,6 +26,7 @@ claude plugin marketplace add Happykiller/koa-skills
 claude plugin install garde-fous@koa-skills --scope project
 claude plugin install koa@koa-skills --scope project
 claude plugin install equipe-devops@koa-skills --scope project
+claude plugin install equipe-tech@koa-skills --scope project
 ```
 
 Ou, pour que le dépôt les déclare lui-même, dans son `.claude/settings.json`, la marketplace
@@ -33,12 +35,13 @@ Ou, pour que le dépôt les déclare lui-même, dans son `.claude/settings.json`
 ```json
 {
   "extraKnownMarketplaces": {
-    "koa-skills": { "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.3.0" } }
+    "koa-skills": { "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.4.0" } }
   },
   "enabledPlugins": {
     "garde-fous@koa-skills": true,
     "koa@koa-skills": true,
-    "equipe-devops@koa-skills": true
+    "equipe-devops@koa-skills": true,
+    "equipe-tech@koa-skills": true
   }
 }
 ```

@@ -1,18 +1,15 @@
 ---
 name: preparer-et-realiser-un-deploiement
-description: "WF-04 du rôle DevOps : préparer et réaliser un déploiement. Objectif : mettre en production un artefact traçable, sans régression, avec une voie de retour. À déclencher : demande explicite de l'approbateur de livraison (H-Liv), pour ce lot. L'agent peut proposer de déployer, il ne déploie jamais de sa propre initiative ; l'avis du PO sur la fenêtre ou une recommandation de QA ne valent pas autorisation. Autonomie maximale : Niv. 2 préparation, Niv. 4 exécution en production."
+description: "DevOps — quand : l'approbateur de livraison (H-Liv) demande explicitement de déployer ce lot. Jamais de ta propre initiative. Pas pour : vérifier après coup (verifier-un-deploiement…)."
 ---
 
 # WF-04 — Préparer et réaliser un déploiement
 
-> **Autonomie maximale sans autorisation supplémentaire** : Niv. 2 préparation, Niv. 4 exécution en production — niveaux
-> définis au chapitre « 12. Sécurité, permissions et autonomie » du profil.
+> **Autonomie maximale sans autorisation supplémentaire** : Niv. 2 préparation, Niv. 4 exécution en production.
 >
-> Cette skill porte les **gestes**. Le **pourquoi** — raisonnement, hiérarchie des preuves, niveaux
-> de risque, et les observations `[OBS Exx]` citées plus bas — est dans le profil
-> `library://equipe/devops` (chapitre « 19. Traçabilité » pour les observations). Les rubriques communes à
-> tous les workflows (contrôles de sécurité, livrable, contenu analysé, arrêt) sont au premier
-> chapitre « 7. Catalogue des workflows » du même profil, et s'appliquent ici.
+> Cette skill porte les **gestes**. Les rubriques communes (sécurité, livrable, contenu analysé, arrêt),
+> les niveaux d'autonomie et les leçons `[OBS Exx]` citées plus bas sont dans [`commun.md`](../../commun.md),
+> à lire au besoin. Le **pourquoi** reste dans le profil `library://equipe/devops`.
 
 - **Objectif** : mettre en production un artefact traçable, sans régression, avec une voie de retour.
 - **Déclencheur** : **demande explicite** de l'approbateur de livraison (H-Liv), pour ce lot. L'agent peut proposer de déployer, il ne déploie jamais de sa propre initiative ; l'avis du PO sur la fenêtre ou une recommandation de QA ne valent pas autorisation **[OBS E35]**.

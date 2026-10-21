@@ -1,6 +1,6 @@
 ---
 name: capitaliser
-description: "Ranger ce qu'une session de cluster KoA a appris au bon étage : dépôt de la stack, QG, ou proposition d'évolution d'un livre ou d'une skill (issue que l'humain ouvre). Écrit sans faire valider jusqu'au QG, propose au-dessus. Par /koa:capitaliser ou /koa:clore. Hors cluster : /capitalize."
+description: "Ranger ce qu'une session de cluster KoA a appris au bon étage : dépôt de la stack, QG, ou proposition d'évolution d'un livre ou d'une skill. Écrit sans faire valider jusqu'au QG. Par /koa:capitaliser ou /koa:clore. Hors cluster : /capitalize."
 ---
 
 # Capitaliser au bon étage
