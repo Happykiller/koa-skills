@@ -22,11 +22,14 @@ Ce qu'un agent peut viser en déploiement fait foi dans `.claude/garde-fous.json
 ## Les interdits
 
 - Ne jamais citer, explorer ni contacter un dépôt ou un environnement hors de ce cluster.
-- Ne jamais écrire une valeur de secret dans un fichier : les secrets se nomment.
+- Ne jamais écrire une valeur de secret dans un fichier : les secrets se nomment, et vivent au coffre du
+  cluster (`coffre_lister`, `coffre_deposer`, `coffre_ecrire`).
 - Ne jamais déployer sur une cible interdite : préparer, puis demander.
 
 ## Où est le reste
 
 - Décisions : `docs/KB/decisions/`, une par fichier, datée.
+- Chantiers : `docs/chantiers/<chantier>/` — demande, avis, plan et Gantt, fiches de mission, rétrospective
+  (`/koa:mener-un-chantier`). Branches : `master` livré, `develop` finalisé, `feature/<nom>` par feature.
 - Base de connaissance : `docs/KB/README.md`.
 - Gestes propres au cluster : `.claude/skills/`.

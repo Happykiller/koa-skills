@@ -34,7 +34,8 @@ rôles (voir « Pousser »).
 
 Tu enchaînes sans demander de validation. Tu t'arrêtes, exposes et attends si :
 
-- un **secret** (`.env`, clé, jeton, dump, identifiants) est sur le point d'être committé ;
+- un **secret** (`.env`, clé, jeton, dump, identifiants) est sur le point d'être committé — sa place est le
+  coffre du cluster (`coffre_ecrire`, `depuis_fichier`) ;
 - un fichier modifié **n'a aucun rapport** avec la session ;
 - un acquis **contredit** une page existante, au QG surtout — une loi d'équipe ne se réécrit pas en clôture ;
 - un **push est rejeté**, ou la forge du QG prend des PR et refuse celle que tu ouvres ;

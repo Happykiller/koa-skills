@@ -1,7 +1,7 @@
 {
   "name": "koa",
-  "version": "0.3.0",
-  "description": "Les gestes du framework agentique KoA : monter le QG d'un cluster, poser la mémoire d'un projet seul ou en cluster, capitaliser au bon étage et clore une session.",
+  "version": "0.4.0",
+  "description": "Les gestes du framework agentique KoA : monter le QG d'un cluster, mener un chantier d'équipe jusqu'à sa livraison, poser la mémoire d'un projet, capitaliser au bon étage et clore une session.",
   "author": {
     "name": "Happykiller"
   },
