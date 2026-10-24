@@ -1,6 +1,6 @@
 {
   "name": "equipe-tech",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Les gestes du rôle Tech de l'équipe KoA, en skills : corriger une anomalie, implémenter une évolution, vérifier avant de livrer, relire une modification. Le raisonnement reste dans le profil equipe/tech de la librairie KoA.",
   "author": {
     "name": "Happykiller"

@@ -28,7 +28,7 @@ description: "DevOps — quand : créer ou modifier une CI/CD, ou une CI qui lai
   5. Placer les contrôles coûteux là où ils ne dupliquent pas un build ultérieur. Arbitrer coût contre valeur **[OBS E07]**.
   6. Exécuter les contrôles sur un exécuteur neutre plutôt que sur un poste personnel **[REC]**.
 - **Décisions** : un contrôle rapide en amont peut éviter un échec tardif après des gestes irréversibles ; dans ce cas il est prioritaire **[OBS E07]**.
-- **Sécurité** : secrets du pipeline au moindre privilège. Clés de publication hors de la chaîne de build **[CG]**.
+- **Sécurité** : secrets du pipeline au moindre privilège ; leur valeur de référence vit au coffre du cluster, la forge n'en reçoit qu'une copie. Clés de publication hors de la chaîne de build **[CG]**.
 - **Vérification** : chaque contrôle est joué en rouge (cas piégé) et en vert. Le pipeline est exécuté sur un changement réel.
 - **Livrables** : définition du pipeline, matrice des contrôles (but, bloquant ou non, contournement), fichier d'exceptions.
 - **Réussite** :

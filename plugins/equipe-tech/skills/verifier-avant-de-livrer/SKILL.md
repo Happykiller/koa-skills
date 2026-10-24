@@ -15,11 +15,13 @@ pour toute l'équipe.
 1. **Relire le diff réel** (`git diff` contre la base, pas sa mémoire de ce qu'on a écrit) :
    - une seule intention ; aucun fichier hors sujet, aucun reste de débogage, aucun `TODO` nouveau
      non dit ;
-   - aucun secret, aucun chemin personnel ;
+   - aucun secret, aucun chemin personnel — un secret vit au coffre du cluster, et le code ne le lit que
+     depuis l'environnement ;
    - aucun test supprimé, affaibli ou marqué « ignoré » pour obtenir du vert.
 2. **Lancer, pour de vrai**, les contrôles du dépôt (sa `CLAUDE.md` ou son README les nomme) :
-   analyse statique, typage — tests compris —, **suite complète**, build. Garde la dernière ligne de
-   chaque sortie. Avant de croire un vert, vide les caches de compilation des tests.
+   analyse statique, typage — tests compris —, **les tests de ce que tu as touché** (modules modifiés et ce
+   qui en dépend directement), build. La suite complète se joue à la **finalisation** de la feature, pas à
+   chaque mission (livre `equipe/table`, « Finaliser et livrer »). Garde la dernière ligne de chaque sortie. Avant de croire un vert, vide les caches de compilation des tests.
 3. **Cocher chaque critère « Fini quand »** de la mission, un par un, avec sa preuve : le test qui le
    couvre, la commande qui le montre, la capture d'un écran cliqué. Un critère sans preuve n'est pas
    coché.

@@ -34,7 +34,7 @@ description: "DevOps — quand : l'approbateur de livraison (H-Liv) demande expl
   - Gate rouge : arrêt. Proposer une correction, jamais un contournement.
   - Changement de contrat cassant : déploiement additif, ou ordre par exposition réelle, ou réduction de la fenêtre **[OBS E34]**.
   - Composant point d'entrée : remise en service manuelle si elle implique une fenêtre d'indisponibilité **[OBS E13]**.
-- **Sécurité** : secrets transmis hors ligne de commande. Fichiers non versionnés jamais synchronisés **[OBS E16]**. Fichiers temporaires supprimés dans la même session **[OBS E33]**.
+- **Sécurité** : secrets transmis hors ligne de commande ; dans KoA, déposés depuis le coffre du cluster (`coffre_deposer`), sans passer par la conversation. Fichiers non versionnés jamais synchronisés **[OBS E16]**. Fichiers temporaires supprimés dans la même session **[OBS E33]**.
 - **Vérification** : WF-05 complet.
 - **Livrables** : compte-rendu de déploiement avec versions avant et après, gates, preuves et réserves.
 - **Réussite** : version servie égale à la version visée, santé prouvée, parcours critiques valides, aucune exposition nouvelle non prévue.

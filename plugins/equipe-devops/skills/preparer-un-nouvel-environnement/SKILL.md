@@ -27,7 +27,7 @@ description: "DevOps — quand : créer un environnement (dev, recette, producti
   8. **Déclarer le composant dans tous les outillages et listes** qui énumèrent les composants **[OBS E46]**.
 - **Décisions** :
   - Besoin de sortie internet : la cantonner au sous-composant qui l'exige, jamais au composant qui détient les données **[OBS E28]**.
-- **Sécurité** : secrets propres à chaque environnement, jamais réutilisés entre développement et production.
+- **Sécurité** : secrets propres à chaque environnement, jamais réutilisés entre développement et production ; dans KoA, chacun publié au coffre du cluster sous un identifiant qui nomme son environnement (`kube-recette`, `db-prod`), avec sa description (`commun.md`, « Secrets »).
 - **Vérification** :
   1. Démarrage à froid sain.
   2. Isolement **prouvé** : une sortie interdite échoue, une sortie autorisée réussit **[OBS E28]**.
