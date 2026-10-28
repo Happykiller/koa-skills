@@ -26,7 +26,9 @@ principale du QG — c'est ton registre, sans PR. Un nom de chantier court, en m
 
 `agents_lister` puis `cantina_tables` : qui est là, **combien de chaque rôle**, ce qui reste du budget. Écris-le au
 plan (« Équipe »). Deux sessions du même rôle sont deux files de travail. Un rôle qui manque s'ouvre
-(`agent_ouvrir`) ou se demande à l'humain — jamais supposé présent.
+(`agent_ouvrir`) ou se demande à l'humain — jamais supposé présent. Un rôle déjà passé et fermé **se reprend** :
+`agent_ouvrir` avec `reprendre` et l'identifiant de conversation noté au plan, plutôt qu'un agent neuf qui refait sa
+prise de poste.
 
 ## 3. Le tour de table
 
@@ -74,7 +76,19 @@ l'étiquette. Déployer n'est fait que si l'ordre le dit.
 
 `cantina_releve` pour les chiffres de la table ; `retro.md` : ce qui a tenu, ce qui a coincé, ce qui change pour
 le prochain passage, avec les heures du plan. Un `COMPTE RENDU` consigné sans destinataire : réalisé, non
-réalisé, « Pas vérifié ». Puis fais clore les agents (`/koa:clore`), ferme-les (`agent_fermer`), et clos en dernier.
+réalisé, « Pas vérifié ». Puis :
+
+1. **Demande la clôture à tous, en un envoi** : `CLORE — fin du chantier <chantier>` (`cantina_dire`, `a` : toutes les
+   adresses). Chacun lance `/koa:clore` et te répond `CLÔTURE — <rôle>`.
+2. `cantina_attendre`, une fois, puis `cantina_courrier` : une `CLÔTURE` par agent. Fusionne au QG les branches
+   `capitalisation/…` qu'elles annoncent, après les avoir relues.
+3. **Ferme chaque agent** (`agent_fermer`). KoA refuse celui qui n'a pas posté sa `CLÔTURE` : redemande-la. Un agent
+   qui ne peut plus clore se ferme avec `sans_cloture` et la raison — elle reste à la table, et va dans `retro.md`.
+   Note au plan l'identifiant de conversation que KoA rend pour chacun : c'est lui qui le fera reprendre.
+4. **Clos en dernier** (`/koa:clore`) : tu capitalises ce que le chantier t'a appris, à toi.
+
+Une fermeture en cours de chantier — un rôle qui n'a plus de mission avant longtemps — suit les mêmes 1 à 3 : fermer
+pour reprendre plus tard n'est pas une raison de ne pas clore, rien ne garantit la reprise.
 
 ## Arrêts
 

@@ -35,7 +35,7 @@ Ou, pour que le dépôt les déclare lui-même, dans son `.claude/settings.json`
 ```json
 {
   "extraKnownMarketplaces": {
-    "koa-skills": { "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.4.0" } }
+    "koa-skills": { "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.6.0" } }
   },
   "enabledPlugins": {
     "garde-fous@koa-skills": true,

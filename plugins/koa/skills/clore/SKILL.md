@@ -1,6 +1,6 @@
 ---
 name: clore
-description: "Fin de session d'un agent de cluster KoA : capitaliser, tester, committer, pousser (QG par une branche), arrêter ses conteneurs, vérifier. Autonome, proportionnée à la session. Par /koa:clore, ou quand ta mission est close. Hors cluster : /cloture."
+description: "Fin de session d'un agent de cluster KoA : capitaliser, committer, pousser, arrêter, vérifier, puis dire sa CLÔTURE à la table. Proportionnée à la session. Par /koa:clore, sur un CLORE, ou quand ta mission est close. Hors cluster : /cloture."
 ---
 
 # Clore la session
@@ -24,6 +24,7 @@ projet (`/cloture`).
 
 ```
 1. recenser → 2. capitaliser → 3. committer → 4. pousser → 5. synchroniser les données → 6. arrêter → 7. vérifier
+→ 8. dire sa clôture
 ```
 
 Les conteneurs tombent **en dernier** : un hook de pre-commit, une suite de tests ou une synchro peut
@@ -155,3 +156,20 @@ Non refermé : … (ou « rien »)
 ```
 
 **« La session est close »** est une affirmation vérifiée, pas une formule de politesse.
+
+## 8. Dire sa clôture à la table
+
+Assis à une table de la Cantina, tu y postes le rapport en court — **à qui t'a demandé de clore** (son `CLORE`),
+consigné sans destinataire si personne ne l'a demandé :
+
+```
+CLÔTURE — <rôle>
+Capitalisation : <écrit, où ; proposé, où> — ou « rien »
+Poussé : <dépôts ; branche capitalisation/… à fusionner> — ou « rien »
+Non refermé : <ce qui tourne ou reste sale> — ou « rien »
+```
+
+**KoA ne ferme pas un agent sans elle** : c'est ce message, et lui seul, qui dit à `agent_fermer` que ta session peut
+se fermer sans rien perdre. « Capitalisation : rien » est une clôture ; un silence n'en est pas une. Une `MISSION`
+reçue après la rend caduque : la nouvelle mission finie, tu clos de nouveau. `sans-capi` et `sans-push` postent la
+leur aussi, en disant ce qu'ils ont sauté.
