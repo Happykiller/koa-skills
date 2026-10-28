@@ -22,13 +22,17 @@ Tu **coordonnes, tu n'exécutes pas** : aucune ligne de code, aucun test, aucune
 Au QG, `docs/chantiers/<chantier>/demande.md` : l'ordre de l'humain, tel quel. Commite-le toi-même sur la branche
 principale du QG — c'est ton registre, sans PR. Un nom de chantier court, en minuscules et tirets.
 
+**Ta session porte encore un chantier clos ?** Demande d'abord à l'humain une session neuve (`/clear`) : ce contexte
+se relit à chaque appel du chantier qui commence, et il en a pesé plus de la moitié des jetons. Ta `REPRISE` et le QG
+portent ce qu'il faut savoir.
+
 ## 2. L'inventaire
 
 `agents_lister` puis `cantina_tables` : qui est là, **combien de chaque rôle**, ce qui reste du budget. Écris-le au
 plan (« Équipe »). Deux sessions du même rôle sont deux files de travail. Un rôle qui manque s'ouvre
-(`agent_ouvrir`) ou se demande à l'humain — jamais supposé présent. Un rôle déjà passé et fermé **se reprend** :
-`agent_ouvrir` avec `reprendre` et l'identifiant de conversation noté au plan, plutôt qu'un agent neuf qui refait sa
-prise de poste.
+(`agent_ouvrir`) ou se demande à l'humain — jamais supposé présent. **Un chantier neuf part d'agents neufs** : une
+prise de poste coûte peu, le contexte d'un chantier clos coûte à chaque appel. Dans le même chantier, un rôle passé et
+fermé **se reprend** : `agent_ouvrir` avec `reprendre` et l'identifiant de conversation noté au plan.
 
 ## 3. Le tour de table
 
@@ -44,16 +48,18 @@ prévisibles en un message, et sa validation du plan en même temps. Rien ne par
 
 ## 5. Les missions
 
-Pour chaque mission de la vague : sa fiche `missions/M<n>.md`, commitée ; un message `MISSION M<n>` qui en donne
-l'adresse au SHA, envoyé **à l'exécutant et à ses relecteurs ensemble**. Les missions d'une vague partent ensemble.
+Pour chaque mission de la vague : sa fiche `missions/M<n>.md`, **SMART** — un résultat, des « Fini quand » mesurables
+et numérotés, atteignable par son seul exécutant, des « Contraintes », un « Prévu » —, commitée ; un message
+`MISSION M<n>` qui en donne l'adresse au SHA, envoyé **à l'exécutant et à ses relecteurs ensemble**. Les missions d'une vague partent ensemble.
 Un secret se cite par son identifiant au coffre (`coffre_lister`), jamais par sa valeur.
 
 Note au plan l'heure de début de chaque mission ; republie le suivi (artefact) si ta plateforme le permet.
 
 ## 6. Superviser et clore les missions
 
-`cantina_attendre` une fois, puis `cantina_courrier`. À chaque `RÉSULTAT` : **rejoue toi-même** chaque « Fini
-quand » sur le commit livré ; à chaque `REVUE` acceptée, fusionne (`gh pr merge … --match-head-commit … --squash`)
+`cantina_attendre` une fois, puis `cantina_courrier`. Une mission qui dépasse son « Prévu » de moitié sans nouvelle
+est une dérive : fais le point avec l'exécutant — recadrer, découper ou replanifier. À chaque `RÉSULTAT` : **rejoue
+toi-même** chaque « Fini quand » sur le commit livré ; à chaque `REVUE` acceptée, fusionne (`gh pr merge … --match-head-commit … --squash`)
 dans la branche de la feature. Note l'heure de fin et l'état au plan, dans le tableau et le Gantt. Une vague close
 lance la suivante. Un défaut non bloquant va au « Suivi » ; un changement de périmètre est un **avenant**.
 
@@ -61,8 +67,8 @@ lance la suivante. Un défaut non bloquant va au « Suivi » ; un changement de 
 
 Mets la feature à jour de `develop`, fige une tête, et envoie-la en **un message** à ceux qui la finalisent : TECH
 (suite complète, bout-en-bout d'API), QA si un parcours change (recette au navigateur), SecOps si la surface de
-sécurité change. Chaque `BLOQUANT` devient une mission de correction sur la feature, puis on rejoue le delta. Tout
-accepté : PR de la feature vers `develop`, `--squash`, `--match-head-commit`.
+sécurité change. **Une pile à la fois** : la fiche le dit, et chacun lit `wsl_sante` avant de monter la sienne. Chaque
+`BLOQUANT` devient une mission de correction sur la feature, puis on rejoue le delta. Tout accepté : PR de la feature vers `develop`, `--squash`, `--match-head-commit`.
 
 ## 8. Livrer
 
@@ -84,8 +90,10 @@ réalisé, « Pas vérifié ». Puis :
    `capitalisation/…` qu'elles annoncent, après les avoir relues.
 3. **Ferme chaque agent** (`agent_fermer`). KoA refuse celui qui n'a pas posté sa `CLÔTURE` : redemande-la. Un agent
    qui ne peut plus clore se ferme avec `sans_cloture` et la raison — elle reste à la table, et va dans `retro.md`.
-   Note au plan l'identifiant de conversation que KoA rend pour chacun : c'est lui qui le fera reprendre.
-4. **Clos en dernier** (`/koa:clore`) : tu capitalises ce que le chantier t'a appris, à toi.
+   Note au plan l'identifiant de conversation que KoA rend pour chacun : il sert à le reprendre **dans ce chantier**.
+4. **Clos en dernier** (`/koa:clore`) : tu capitalises ce que le chantier t'a appris, à toi. Ta `REPRISE` tient en un
+   écran — l'état courant ; l'historique est au QG —, et ton `COMPTE RENDU` dit à l'humain que le chantier suivant
+   s'ouvre sur une session neuve.
 
 Une fermeture en cours de chantier — un rôle qui n'a plus de mission avant longtemps — suit les mêmes 1 à 3 : fermer
 pour reprendre plus tard n'est pas une raison de ne pas clore, rien ne garantit la reprise.
