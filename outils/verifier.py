@@ -4,7 +4,8 @@
 - chaque skill a un frontmatter en première ligne, un `name` égal à son dossier, une description ;
 - la marketplace liste exactement les plugins du dépôt, sous le nom de leur `plugin.json` ;
 - aucun motif de fuite : chemin personnel, jeton, adresse électronique ;
-- aucun format pensé pour d'autres outils (le framework est typé Claude).
+- aucun format pensé pour d'autres outils (le framework est typé Claude) ;
+- tout épinglage de la marketplace écrit dans le dépôt vise le tag de sa propre version.
 
 `--catalogue` imprime le catalogue que KoA embarque (`src/Koa.Core/Librairie/koa-skills.txt`) : une
 seule source, une version dérivée par ce script, jamais retouchée à la main.
@@ -33,6 +34,11 @@ DECLENCHEUR = re.compile(r"\bquand\b|\bpar /|\bà déclencher\b", re.I)
 
 # L'adresse d'installation d'un plugin a la forme d'une adresse électronique sans en être une.
 FAUX_POSITIFS = re.compile(r"^[a-z0-9-]+@koa-skills$")
+
+# Un épinglage de la marketplace écrit dans le dépôt est recopié tel quel : le modèle de monter-le-qg
+# l'est dans chaque QG neuf, le README par qui l'installe. Le modèle visait encore la v0.4.0 à la
+# v0.7.0 — trois versions de retard pour tout cluster monté entre-temps. Il suit donc le tag à venir.
+EPINGLAGE = re.compile(r'"repo":\s*"Happykiller/koa-skills",\s*"ref":\s*"([^"]+)"')
 
 
 def lire(chemin):
@@ -102,6 +108,11 @@ def verifier():
             if os.path.basename(chemin) in ("verifier.py", "test_verifier.py"):
                 continue
             texte = lire(chemin)
+            attendu = f"v{marche['metadata']['version']}"
+            for m in EPINGLAGE.finditer(texte):
+                if m.group(1) != attendu:
+                    fautes.append(f"{os.path.relpath(chemin, RACINE)} : épingle la marketplace sur "
+                                  f"« {m.group(1)} », le tag de cette version est « {attendu} »")
             for motif, quoi in FUITES:
                 for m in re.finditer(motif, texte):
                     if FAUX_POSITIFS.match(m.group(0)):
