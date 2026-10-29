@@ -22,7 +22,7 @@ confiance**, et cloisonnée par les accès plutôt que par la consigne.
 Une fois par dépôt, depuis ce dépôt :
 
 ```bash
-claude plugin marketplace add https://github.com/Happykiller/koa-skills.git#v0.7.2
+claude plugin marketplace add https://github.com/Happykiller/koa-skills.git#v0.7.3
 claude plugin install garde-fous@koa-skills --scope project
 claude plugin install koa@koa-skills --scope project
 claude plugin install equipe-devops@koa-skills --scope project
@@ -35,7 +35,7 @@ Ou, pour que le dépôt les déclare lui-même, dans son `.claude/settings.json`
 ```json
 {
   "extraKnownMarketplaces": {
-    "koa-skills": { "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.7.2" } }
+    "koa-skills": { "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.7.3" } }
   },
   "enabledPlugins": {
     "garde-fous@koa-skills": true,

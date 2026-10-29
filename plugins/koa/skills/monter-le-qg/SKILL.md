@@ -64,7 +64,9 @@ qui contredit le framework sans le réécrire.
 
 Dans `.claude/settings.json`, active les plugins des rôles déclarés (`equipe-devops@koa-skills` pour le
 DevOps, `equipe-tech@koa-skills` pour qui code ou relit, …) et **toujours** `garde-fous@koa-skills`. Épingle la marketplace sur un tag (`"ref": "v…"`),
-jamais sur une branche : un cluster ne suit pas `main` à son insu.
+jamais sur une branche : un cluster ne suit pas `main` à son insu. Ce tag **se suit** : KoA installe dans
+chaque distro du cluster celui que le QG épingle, et quand il en recommande un plus récent, son Doctor propose
+la montée en PR (« Proposer v… au QG ») — l'équipe la fusionne, ou garde sa version.
 
 **Claude Code protège le dossier `.claude/`** : y écrire demande l'accord de l'humain, même quand
 les autres écritures passent sans question. C'est voulu — ces fichiers décident de ce que les agents
@@ -88,7 +90,7 @@ En quelques lignes : ce qui a été **créé**, **complété**, laissé **tel qu
 **à renseigner**. Puis ce que l'humain doit faire lui-même :
 
 - installer les plugins une fois pour ce dépôt :
-  `claude plugin marketplace add https://github.com/Happykiller/koa-skills.git#v0.7.2` puis
+  `claude plugin marketplace add https://github.com/Happykiller/koa-skills.git#v0.7.3` puis
   `claude plugin install <plugin>@koa-skills --scope project` pour chacun ;
 - relire et committer.
 
