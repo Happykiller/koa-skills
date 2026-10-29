@@ -29,6 +29,11 @@ class MotifsDeFuite(unittest.TestCase):
         # Un objectif n'est pas un déclencheur : c'était le défaut des descriptions de la 0.3.0.
         self.assertIsNone(verifier.DECLENCHEUR.search("Objectif : un pipeline qui bloque ce qu'il doit."))
 
+    def test_l_epinglage_se_lit_sur_une_ligne_comme_sur_plusieurs(self):
+        une = '{ "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.4.0" }'
+        plusieurs = '"repo": "Happykiller/koa-skills",\n      "ref": "v0.4.0"'
+        self.assertEqual([m.group(1) for m in verifier.EPINGLAGE.finditer(une + plusieurs)], ["v0.4.0", "v0.4.0"])
+
     def test_le_depot_est_propre(self):
         self.assertEqual(verifier.verifier(), [])
 
