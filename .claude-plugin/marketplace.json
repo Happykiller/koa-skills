@@ -2,7 +2,7 @@
   "name": "koa-skills",
   "description": "Les skills du framework agentique KoA : gestes de rôle, garde-fou de déploiement et de fusion, QG de cluster.",
   "owner": { "name": "Happykiller" },
-  "metadata": { "version": "0.7.1" },
+  "metadata": { "version": "0.7.2" },
   "plugins": [
     {
       "name": "koa",

@@ -34,6 +34,15 @@ class MotifsDeFuite(unittest.TestCase):
         plusieurs = '"repo": "Happykiller/koa-skills",\n      "ref": "v0.4.0"'
         self.assertEqual([m.group(1) for m in verifier.EPINGLAGE.finditer(une + plusieurs)], ["v0.4.0", "v0.4.0"])
 
+    def test_l_epinglage_se_lit_aussi_dans_la_commande_d_ajout(self):
+        commande = "`claude plugin marketplace add https://github.com/Happykiller/koa-skills.git#v0.4.0`"
+        self.assertEqual([m.group(2) for m in verifier.EPINGLAGE.finditer(commande)], ["v0.4.0"])
+        self.assertIsNone(verifier.AJOUT_NU.search(commande))
+
+    def test_l_ajout_par_owner_repo_est_une_faute(self):
+        self.assertTrue(verifier.AJOUT_NU.search("claude plugin marketplace add Happykiller/koa-skills\n"))
+        self.assertTrue(verifier.AJOUT_NU.search("(`claude plugin marketplace add Happykiller/koa-skills`, puis"))
+
     def test_le_depot_est_propre(self):
         self.assertEqual(verifier.verifier(), [])
 
