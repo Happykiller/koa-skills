@@ -35,15 +35,12 @@ pour toute l'équipe.
 6. **Livrer la tête** (le SHA complet) avec ce rapport, en un seul message — c'est lui que le relecteur
    rejoue.
 
-## Livrable — le rapport, tel quel
+## Livrable
 
-```
-Tête : <sha complet>
-Fini quand : [x] <critère> — <preuve> · [x] … · [ ] <critère> — pas fait : <raison>
-Contrôles : tests « <dernière ligne> » · build « … » · lint « … »
-Pas vérifié : <ce qui ne l'a pas été, et pourquoi> | rien — <pourquoi rien>
-Risques : <ce qu'un relecteur doit regarder en premier>
-```
+Le `RÉSULTAT` au format du livre `equipe/table` (« Répondre à une mission »), qui fait foi : ce geste ne le
+recopie pas. Il commence par l'identifiant de la mission (`RÉSULTAT M3 — fait`), cite la tête livrée, coche
+chaque case de « Fini » avec sa preuve, et écrit toujours « Pas vérifié ». Ce qu'un relecteur doit regarder en
+premier tient en une ligne de plus. Hors d'une table, les mêmes rubriques, sans l'identifiant.
 
 ## Réussite
 

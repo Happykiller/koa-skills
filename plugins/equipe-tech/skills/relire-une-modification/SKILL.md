@@ -20,28 +20,27 @@ rend sur l'ancienne en le disant.
 4. **Lire en travers** : qui consomme le contrat, le type, le champ touché ? Certains défauts — une donnée
    exposée ailleurs — ne se voient qu'en dehors du diff.
 5. **Cocher les « Fini quand »** de la mission contre leurs preuves.
-6. **Classer chaque constat** :
+6. **Classer chaque constat** dans les deux classes de la table :
 
-| Gravité | Quand | Effet |
+| Classe | Quand | Effet |
 |---|---|---|
-| BLOQUANT | comportement faux, faille, perte de données, contrat cassé, test faux | refus |
-| MAJEUR | faux dans un cas réaliste ; erreur avalée ; règle dupliquée | refus, sauf décision écrite du propriétaire |
-| MINEUR | dette, lisibilité | ne bloque pas |
-| INFO | préférence | dite comme telle, jamais imposée |
+| BLOQUANT | comportement faux, faille, perte de données, contrat cassé, test faux ; faux dans un cas réaliste, erreur avalée, règle dupliquée | refus |
+| SUIVI | dette, lisibilité ; une préférence, dite comme telle | va au plan, ne bloque pas |
 
 Un constat : `gravité · fichier:ligne · attente violée · preuve · correction proposée`.
 
 ## Livrable
 
-```
-REVUE de <sha complet> — ACCEPTÉE | REFUSÉE
-Rejoué : tests « … » · build « … »
-Constats : <un par ligne, classés> | aucun
-Fini quand : [x] … · [ ] …
-Non couvert : <angles que la revue n'a pas regardés>
-```
+La `REVUE` au format du livre `equipe/table` (« La revue »), qui fait foi : ce geste ne le recopie pas. Deux
+points s'y perdent le plus :
 
-Une revue se rend **en un message**, sur la tête relue : c'est elle que l'orchestrateur fusionne.
+- elle **commence par l'identifiant de la mission** — `REVUE M3 — <verdict>, sur <SHA complet>` : sans lui, KoA
+  ne clôt pas ta mission de relecture ;
+- son verdict est l'un de ceux de la table — `ACCEPTÉ`, `ACCEPTÉ_AVEC_RÉSERVES`, `REFUSÉ`, `NON_CONCLUANT` —,
+  aucun autre.
+
+Une revue se rend **en un message**, sur la tête relue : c'est elle que l'orchestrateur fusionne. Hors d'une
+table, les mêmes rubriques, sans l'identifiant.
 
 ## Réussite
 
