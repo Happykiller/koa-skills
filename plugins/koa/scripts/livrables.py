@@ -18,7 +18,9 @@ def render(data):
     for key in required[1:]:
         if not isinstance(data[key], list):
             raise ValueError(f"{key} doit être une liste")
-    if not isinstance(data["gantt"], str) or not data["gantt"].lstrip().startswith("gantt"):\n        raise ValueError("gantt doit contenir un diagramme Mermaid gantt")\n    name = clean(data["name"])
+    if not isinstance(data["gantt"], str) or not data["gantt"].lstrip().startswith("gantt"):
+        raise ValueError("gantt doit contenir un diagramme Mermaid gantt")
+    name = clean(data["name"])
     missions = data["missions"]
     plan = (f"# Plan — {name}\n\n| Mission | Responsable | État | Critères | Preuves |\n"
             "|---|---|---|---|---|\n" + rows(missions, ["id","owner","state","criteria","evidence"]) + "\n\n## Gantt\n\n```mermaid\n" + data["gantt"] + "\n```\n")
