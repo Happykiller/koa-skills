@@ -11,17 +11,17 @@ def rows(items, keys):
     return "\n".join("| " + " | ".join(clean(item.get(key, "Non renseigné")) for key in keys) + " |" for item in items)
 
 def render(data):
-    required = ("name", "missions", "decisions", "observations", "capabilities")
+    required = ("name", "missions", "decisions", "observations", "capabilities", "gantt")
     missing = [k for k in required if k not in data]
     if missing:
         raise ValueError("champs manquants : " + ", ".join(missing))
     for key in required[1:]:
         if not isinstance(data[key], list):
             raise ValueError(f"{key} doit être une liste")
-    name = clean(data["name"])
+    if not isinstance(data["gantt"], str) or not data["gantt"].lstrip().startswith("gantt"):\n        raise ValueError("gantt doit contenir un diagramme Mermaid gantt")\n    name = clean(data["name"])
     missions = data["missions"]
     plan = (f"# Plan — {name}\n\n| Mission | Responsable | État | Critères | Preuves |\n"
-            "|---|---|---|---|---|\n" + rows(missions, ["id","owner","state","criteria","evidence"]) + "\n")
+            "|---|---|---|---|---|\n" + rows(missions, ["id","owner","state","criteria","evidence"]) + "\n\n## Gantt\n\n```mermaid\n" + data["gantt"] + "\n```\n")
     bilan = (f"# Bilan technico-fonctionnel — {name}\n\n## Missions\n\n"
              "| Mission | État | Preuves | Non vérifié |\n|---|---|---|---|\n" +
              rows(missions, ["id","state","evidence","unverified"]) +
