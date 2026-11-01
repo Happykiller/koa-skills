@@ -1,6 +1,6 @@
 # Jalons d'intégration anticipée
 
-`python3 outils/integrations.py plan.json` lit des données **déclarées au QG** et rend les jalons bloqués, à exécuter ou prouvés. Il ne lance aucune commande et n'infère pas les dépendances à partir du code.
+`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/integrations.py plan.json` lit des données **déclarées au QG** et rend les jalons bloqués, à exécuter ou prouvés. Il ne lance aucune commande et n'infère pas les dépendances à partir du code.
 
 Exemple minimal :
 
