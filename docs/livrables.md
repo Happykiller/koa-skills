@@ -2,7 +2,7 @@
 
 `python3 outils/livrables.py chantier.json --output docs/chantiers/exemple`
 
-Le registre `chantier.json` doit fournir `name`, et les tableaux `missions`, `decisions`, `observations`, `capabilities`.
+Le registre `chantier.json` doit fournir `name`, et les tableaux `missions`, `decisions`, `observations`, `capabilities`, ainsi que `gantt` (texte Mermaid commençant par `gantt`).
 
 - `missions` : `id`, `owner`, `state`, `criteria`, `evidence`, `unverified`
 - `decisions` : `decision`, `reason`
