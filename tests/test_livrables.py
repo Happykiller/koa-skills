@@ -1,7 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "outils"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "plugins" / "koa" / "scripts"))
 from livrables import render
 
 class LivrablesTests(unittest.TestCase):
