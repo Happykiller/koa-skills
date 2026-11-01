@@ -58,8 +58,7 @@ Note au plan l'heure de début de chaque mission ; republie le suivi (artefact) 
 ## 6. Superviser et clore les missions
 
 `cantina_attendre` une fois, puis `cantina_courrier`. Une mission qui dépasse son « Prévu » de moitié sans nouvelle
-est une dérive : fais le point avec l'exécutant — recadrer, découper ou replanifier. À chaque `RÉSULTAT` : **rejoue
-toi-même** chaque « Fini quand » sur le commit livré ; à chaque `REVUE` acceptée, fusionne (`gh pr merge … --match-head-commit … --squash`)
+est une dérive : fais le point avec l'exécutant — recadrer, découper ou replanifier. À chaque `RÉSULTAT` : **contrôle la complétude** de chaque « Fini quand » contre les preuves citées, la tête livrée et la `REVUE` indépendante ; **rejoue toi-même uniquement** un contrôle manquant, contradictoire, non reproductible, invalidé par un changement ou présentant un risque critique. Une preuve déjà exécutée n'est réutilisable que si la tête, les dépendances, la configuration et l'environnement pertinents n'ont pas changé ; sinon, elle est refaite ou marquée « Pas vérifié ». Le contrôle de l'arbre intégré final reste obligatoire ; à chaque `REVUE` acceptée, fusionne (`gh pr merge … --match-head-commit … --squash`)
 dans la branche de la feature. Note l'heure de fin et l'état au plan, dans le tableau et le Gantt. Une vague close
 lance la suivante. Un défaut non bloquant va au « Suivi » ; un changement de périmètre est un **avenant**.
 
