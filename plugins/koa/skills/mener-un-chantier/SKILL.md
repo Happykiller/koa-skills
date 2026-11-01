@@ -28,7 +28,7 @@ Le dossier du QG est la source de vérité : missions, décisions, états, crit�
 | `rex.md` | Observations consignées au fil de l'eau, consolidation à la clôture | Amélioration continue | Événement, preuve, cause constatée ou hypothèse, coût observé, portée N1–N4, action et doublons écartés |
 | `livraison.md` | À la livraison autorisée | Autres métiers | Capacités disponibles, parcours, limites connues et prérequis d'usage ; aucun détail de mise en œuvre |
 
-Ne génère pas une version narrative complète à chaque message : actualise les éléments factuels au fil de l'eau, puis produis chaque vue au jalon. Si un générateur déterministe est disponible dans le QG, utilise-le ; sinon, rédige ces fichiers depuis les seules preuves existantes. Une absence de preuve reste « Pas vérifié ». `livraison.md` distingue les fonctions effectivement livrées des fonctions seulement finalisées ; pas de promesse avant l'ordre de livraison.
+Ne génère pas une version narrative complète à chaque message : actualise les éléments factuels au fil de l'eau, puis produis chaque vue au jalon. Le plugin KoA fournit `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/livrables.py" chantier.json --output docs/chantiers/<chantier>` : utilise ce générateur lorsque le QG tient un registre structuré valide, sans y inventer de statut ni de preuve. Les quatre documents sont générés depuis une même source, et le plan inclut son Gantt Mermaid ; sinon, rédige ces fichiers depuis les seules preuves existantes. Une absence de preuve reste « Pas vérifié ». `livraison.md` distingue les fonctions effectivement livrées des fonctions seulement finalisées ; pas de promesse avant l'ordre de livraison.
 
 ## 1. Ouvrir le dossier
 
