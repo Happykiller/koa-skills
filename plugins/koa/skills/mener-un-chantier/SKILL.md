@@ -17,6 +17,19 @@ Tu **coordonnes, tu n'exécutes pas** : aucune ligne de code, aucun test, aucune
 | `/koa:mener-un-chantier finaliser <feature>` | « finalise … » : l'étape 7 |
 | `/koa:mener-un-chantier livrer` | « livre » : l'étape 8 |
 
+## Livrables de chantier — quatre vues, une seule source
+
+Le dossier du QG est la source de vérité : missions, décisions, états, critères, preuves et observations sont référencés une fois. Les quatre vues suivantes n'ont pas à recopier les transcripts ni à inventer des résultats :
+
+| Vue | Moment | Destinataire | Contenu minimal |
+|---|---|---|---|
+| `plan.md` | Après validation du tour de table et du plan, puis mis à jour en continu | Équipe et pilote | Vagues, missions, responsables, dépendances, jalons, états et Gantt |
+| `bilan.md` | Clôture du chantier | Pilote | Réalisé/non réalisé, architecture ou choix techniques utiles, preuves, écarts, « Pas vérifié » |
+| `rex.md` | Observations consignées au fil de l'eau, consolidation à la clôture | Amélioration continue | Événement, preuve, cause constatée ou hypothèse, coût observé, portée N1–N4, action et doublons écartés |
+| `livraison.md` | À la livraison autorisée | Autres métiers | Capacités disponibles, parcours, limites connues et prérequis d'usage ; aucun détail de mise en œuvre |
+
+Ne génère pas une version narrative complète à chaque message : actualise les éléments factuels au fil de l'eau, puis produis chaque vue au jalon. Si un générateur déterministe est disponible dans le QG, utilise-le ; sinon, rédige ces fichiers depuis les seules preuves existantes. Une absence de preuve reste « Pas vérifié ». `livraison.md` distingue les fonctions effectivement livrées des fonctions seulement finalisées ; pas de promesse avant l'ordre de livraison.
+
 ## 1. Ouvrir le dossier
 
 Au QG, `docs/chantiers/<chantier>/demande.md` : l'ordre de l'humain, tel quel. Commite-le toi-même sur la branche
