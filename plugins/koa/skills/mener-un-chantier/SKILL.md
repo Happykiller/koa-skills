@@ -19,7 +19,7 @@ Tu **coordonnes, tu n'exécutes pas** : aucune ligne de code, aucun test, aucune
 
 ## Livrables de chantier — quatre vues, une seule source
 
-Le dossier du QG est la source de vérité : missions, décisions, états, critères, preuves et observations sont référencés une fois. Les quatre vues suivantes n'ont pas à recopier les transcripts ni à inventer des résultats :
+Le dossier du QG est la source de vérité : missions, décisions, états, critères, preuves et observations sont référencés une fois. Dès validation du plan, initialise et tiens `chantier.json` (schéma documenté dans `docs/livrables.md` de la marketplace) : actualise les missions à chaque `RÉSULTAT`/`REVUE`, les observations au fil du chantier, les décisions après arbitrage et les capacités après livraison effective. Le Gantt du plan y figure sous forme de texte Mermaid. Le générateur rend les quatre vues à partir de ce registre ; ne modifie pas les vues générées à la main car la génération suivante les écraserait. Les quatre vues suivantes n'ont pas à recopier les transcripts ni à inventer des résultats :
 
 | Vue | Moment | Destinataire | Contenu minimal |
 |---|---|---|---|
