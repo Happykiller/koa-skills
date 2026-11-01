@@ -43,7 +43,8 @@ tu consolides dans `avis.md`, et chaque contradiction devient une **décision à
 ## 4. Le plan et son Gantt
 
 `plan.md` au format de « Le chantier » : features et leurs branches `feature/<nom>`, missions rangées en **vagues**,
-« Relu par » tiré de la matrice « Qui intervient », le Gantt en Mermaid. Pose à l'humain **toutes** les décisions
+« Relu par » tiré de la matrice « Qui intervient », le Gantt en Mermaid. Repère les interfaces entre missions (API/consommateur, schéma, configuration, migration, service tiers) ; ajoute au plan un jalon de **preuve d'intégration ciblée** dès que les deux côtés sont disponibles, plutôt que d'attendre la finalisation. Chaque jalon précise son responsable, le contrat vérifié et la commande de preuve issue du projet, sans inventer de commande. La suite complète et la recette indépendante restent en finalisation.
+Pose à l'humain **toutes** les décisions
 prévisibles en un message, et sa validation du plan en même temps. Rien ne part avant sa réponse.
 
 ## 5. Les missions
