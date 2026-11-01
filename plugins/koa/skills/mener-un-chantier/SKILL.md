@@ -55,7 +55,7 @@ tu consolides dans `avis.md`, et chaque contradiction devient une **décision à
 
 ## 4. Le plan et son Gantt
 
-`plan.md` au format de « Le chantier » : features et leurs branches `feature/<nom>`, missions rangées en **vagues**,
+Après validation humaine, crée ou actualise le premier livrable `plan.md` au format de « Le chantier » : features et leurs branches `feature/<nom>`, missions rangées en **vagues**,
 « Relu par » tiré de la matrice « Qui intervient », le Gantt en Mermaid. Pose à l'humain **toutes** les décisions
 prévisibles en un message, et sa validation du plan en même temps. Rien ne part avant sa réponse.
 
@@ -66,7 +66,7 @@ et numérotés, atteignable par son seul exécutant, des « Contraintes », un �
 `MISSION M<n>` qui en donne l'adresse au SHA, envoyé **à l'exécutant et à ses relecteurs ensemble**. Les missions d'une vague partent ensemble.
 Un secret se cite par son identifiant au coffre (`coffre_lister`), jamais par sa valeur.
 
-Note au plan l'heure de début de chaque mission ; republie le suivi (artefact) si ta plateforme le permet.
+Note au plan l'heure de début de chaque mission ; actualise le premier livrable au QG comme source pérenne et republie le suivi (artefact) si ta plateforme le permet.
 
 ## 6. Superviser et clore les missions
 
@@ -89,13 +89,11 @@ Sur l'ordre de l'humain seulement. Une mission au SecOps : sa passe sur tout ce 
 dernière livraison ; ses `BLOQUANT` ouvrent une vague de corrections, finalisée, avant de reprendre. Une mission
 au DevOps : la version de **chaque composant touché**, et d'eux seuls, sur `release/<version>`, que tu fusionnes
 dans `develop`. Puis PR de `develop` vers `master`, `--merge` (sans squash), `--match-head-commit` ; DevOps pose
-l'étiquette. Déployer n'est fait que si l'ordre le dit.
+l'étiquette. Déployer n'est fait que si l'ordre le dit. Produis `livraison.md` après confirmation de la livraison autorisée et réalisée, pour les autres métiers, depuis les capacités prouvées et les limites connues. Sans livraison effective, conserve un brouillon explicitement non livré.
 
 ## 9. Clore le chantier
 
-`cantina_releve` pour les chiffres de la table ; `retro.md` : ce qui a tenu, ce qui a coincé, ce qui change pour
-le prochain passage, avec les heures du plan. Un `COMPTE RENDU` consigné sans destinataire : réalisé, non
-réalisé, « Pas vérifié ». Puis :
+`cantina_releve` pour les chiffres de la table ; consolide les observations tracées dans `rex.md` (preuves, causes établies ou hypothèses, récurrences, pistes génériques ou propres au QG) ; `retro.md` peut être une synthèse courte qui pointe vers ce REX, sans en dupliquer le contenu. Rédige `bilan.md` pour le pilote : réalisé, non réalisé, principaux choix techniques, preuves et « Pas vérifié ». Consigne ensuite un `COMPTE RENDU` court sans destinataire, avec des références aux livrables plutôt que leur recopie. Puis :
 
 1. **Demande la clôture à tous, en un envoi** : `CLORE — fin du chantier <chantier>` (`cantina_dire`, `a` : toutes les
    adresses). Chacun lance `/koa:clore` et te répond `CLÔTURE — <rôle>`.
