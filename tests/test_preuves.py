@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[1] / "outils" / "preuves.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "plugins" / "koa" / "scripts" / "preuves.py"
 
 class PreuvesTests(unittest.TestCase):
     def test_validity_and_invalidation(self):
