@@ -15,7 +15,7 @@ def render(data):
     missing = [k for k in required if k not in data]
     if missing:
         raise ValueError("champs manquants : " + ", ".join(missing))
-    for key in required[1:]:
+    for key in ("missions", "decisions", "observations", "capabilities"):
         if not isinstance(data[key], list):
             raise ValueError(f"{key} doit être une liste")
     if not isinstance(data["gantt"], str) or not data["gantt"].lstrip().startswith("gantt"):
