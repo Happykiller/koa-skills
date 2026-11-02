@@ -43,7 +43,15 @@ tu consolides dans `avis.md`, et chaque contradiction devient une **décision à
 ## 4. Le plan et son Gantt
 
 `plan.md` au format de « Le chantier » : features et leurs branches `feature/<nom>`, missions rangées en **vagues**,
-« Relu par » tiré de la matrice « Qui intervient », le Gantt en Mermaid. Repère les interfaces entre missions (API/consommateur, schéma, configuration, migration, service tiers) ; ajoute au plan un jalon de **preuve d'intégration ciblée** dès que les deux côtés sont disponibles, plutôt que d'attendre la finalisation. Chaque jalon précise son responsable, le contrat vérifié et la commande de preuve issue du projet, sans inventer de commande. La suite complète et la recette indépendante restent en finalisation. Pour les chantiers ayant des interfaces croisées, tiens au QG un `plan.json` minimal (`missions` avec états `accepted` ou non, `integrations` avec `id`, paire de missions, `owner`, `contract`, `command`, `commit` et `proof`) en plus du plan lisible. Actualise-le à chaque mission acceptée et à chaque nouvelle tête d'intégration ; consulte les jalons après chaque mise à jour. Utilise `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/integrations.py" plan.json` : `BLOCKED` attend les missions, `ACTION_REQUIRED` déclenche la preuve avec le responsable désigné, `PASSED` exige une preuve PASS sur la tête d'intégration. Ne traite jamais une simple déclaration de statut comme preuve indépendante.
+« Relu par » tiré de la matrice « Qui intervient », le Gantt en Mermaid.
+
+**Jalons d'intégration.** Quand deux missions se rencontrent — une API et son consommateur, un schéma et ce qui le
+lit, une configuration, une migration —, le plan porte un **jalon** : une petite mission `I<n>` de la vague qui suit,
+qui dépend des deux, avec son contrat en une phrase, son exécutant (celui qui consomme, en général) et la commande
+ciblée du projet qui prouve la rencontre, sur la tête de la feature où les deux sont fusionnées. Elle part dès que
+les deux sont closes, comme toute vague ; un `BLOQUANT` y ouvre une correction tout de suite, pas en finalisation.
+Pas de jalon sans risque d'incompatibilité nommé, et un jalon ne remplace ni la suite complète ni la recette finales.
+
 Pose à l'humain **toutes** les décisions
 prévisibles en un message, et sa validation du plan en même temps. Rien ne part avant sa réponse.
 
