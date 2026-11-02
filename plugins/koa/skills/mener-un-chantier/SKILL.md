@@ -59,9 +59,13 @@ Note au plan l'heure de début de chaque mission ; republie le suivi (artefact) 
 ## 6. Superviser et clore les missions
 
 `cantina_attendre` une fois, puis `cantina_courrier`. Une mission qui dépasse son « Prévu » de moitié sans nouvelle
-est une dérive : fais le point avec l'exécutant — recadrer, découper ou replanifier. À chaque `RÉSULTAT` : **rejoue
-toi-même** chaque « Fini quand » sur le commit livré ; à chaque `REVUE` acceptée, fusionne (`gh pr merge … --match-head-commit … --squash`)
-dans la branche de la feature. Note l'heure de fin et l'état au plan, dans le tableau et le Gantt. Une vague close
+est une dérive : fais le point avec l'exécutant — recadrer, découper ou replanifier. Un `RÉSULTAT` est un indice :
+c'est la `REVUE` qui prouve. À chaque `REVUE` acceptée, **contrôle sans rejouer** : chaque « Fini quand » y porte sa
+commande et son verdict, sur le SHA complet que tu vas fusionner — un critère que la CI requise a vérifié sur ce SHA
+est prouvé aussi. Tu ne rejoues toi-même que ce qui manque, se contredit, porte sur une autre tête ou un autre
+environnement, ou touche un risque critique ; à partir de C2, au moins une preuve par Owner. Une preuve vaut pour sa
+tête : un commit de plus l'invalide, et le critère se rejoue ou passe en « Pas vérifié ». Puis fusionne
+(`gh pr merge … --match-head-commit … --squash`) dans la branche de la feature. Note l'heure de fin et l'état au plan, dans le tableau et le Gantt. Une vague close
 lance la suivante. Un défaut non bloquant va au « Suivi » ; un changement de périmètre est un **avenant**.
 
 ## 7. Finaliser une feature
