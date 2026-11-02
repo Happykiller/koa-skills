@@ -43,7 +43,16 @@ tu consolides dans `avis.md`, et chaque contradiction devient une **décision à
 ## 4. Le plan et son Gantt
 
 `plan.md` au format de « Le chantier » : features et leurs branches `feature/<nom>`, missions rangées en **vagues**,
-« Relu par » tiré de la matrice « Qui intervient », le Gantt en Mermaid. Pose à l'humain **toutes** les décisions
+« Relu par » tiré de la matrice « Qui intervient », le Gantt en Mermaid.
+
+**Jalons d'intégration.** Quand deux missions se rencontrent — une API et son consommateur, un schéma et ce qui le
+lit, une configuration, une migration —, le plan porte un **jalon** : une petite mission `I<n>` de la vague qui suit,
+qui dépend des deux, avec son contrat en une phrase, son exécutant (celui qui consomme, en général) et la commande
+ciblée du projet qui prouve la rencontre, sur la tête de la feature où les deux sont fusionnées. Elle part dès que
+les deux sont closes, comme toute vague ; un `BLOQUANT` y ouvre une correction tout de suite, pas en finalisation.
+Pas de jalon sans risque d'incompatibilité nommé, et un jalon ne remplace ni la suite complète ni la recette finales.
+
+Pose à l'humain **toutes** les décisions
 prévisibles en un message, et sa validation du plan en même temps. Rien ne part avant sa réponse.
 
 ## 5. Les missions
