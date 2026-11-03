@@ -1,8 +1,9 @@
 #!/usr/bin/env sh
 # Le garde-fou est écrit en Python, et Python coûte 80 à 400 ms à démarrer — à chaque appel Bash de
 # l'agent. Ce tri grossier le réserve aux commandes qui nomment un outil de déploiement ou de
-# fusion (le même filet que SUSPECT dans garde_fous.py), et à tout QG qui déclare ses propres
-# commandes : celles-là, seul Python sait les lire.
+# fusion, ou qui poussent (le même filet que SUSPECT dans garde_fous.py) — « push » et non « git »,
+# que l'agent lance à chaque pas —, et à tout QG qui déclare ses propres commandes : celles-là,
+# seul Python sait les lire.
 entree=$(cat)
 
 conf_propre() {
@@ -13,7 +14,7 @@ conf_propre() {
   return 1
 }
 
-if ! printf '%s' "$entree" | grep -Eq 'kubectl|helm|terraform|tofu|[^a-z]az[^a-z]|[^a-z]aws[^a-z]|gcloud|docker|vercel|netlify|[^a-z]fly|railway|heroku|ansible|[^a-z]gh[^a-z]' \
+if ! printf '%s' "$entree" | grep -Eq 'kubectl|helm|terraform|tofu|[^a-z]az[^a-z]|[^a-z]aws[^a-z]|gcloud|docker|vercel|netlify|[^a-z]fly|railway|heroku|ansible|[^a-z]gh[^a-z]|[^a-z]push[^a-z]' \
    && ! conf_propre; then
   exit 0
 fi

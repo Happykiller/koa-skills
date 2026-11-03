@@ -14,7 +14,8 @@ voit chaque déploiement passer par la confirmation humaine (« ask »), avec la
 configuration illisible refuse les déploiements, plutôt que de laisser passer en silence.
 
 Une seconde section, `fusion`, est **toujours active** : c'est une règle du framework, pas un fait de
-cluster, et `.claude/garde-fous.json` n'y change rien. Elle est jugée avant le déploiement. Un
+cluster, et `.claude/garde-fous.json` n'en choisit que les branches protégées. Elle est jugée avant le
+déploiement. Un
 `gh pr merge` est refusé :
 - s'il porte `--admin`, qui passe outre les protections et la CI requise ;
 - s'il ne porte pas `--match-head-commit` suivi d'un SHA complet (40 caractères hexadécimaux) : on
@@ -24,18 +25,35 @@ cluster, et `.claude/garde-fous.json` n'y change rien. Elle est jugée avant le 
 - quand la commande est illisible (guillemets non fermés) et parle de `gh`, `pr` et `merge` : pour une
   fusion, on refuse ce qu'on n'a pas su lire.
 
+Sans le même témoin, deux autres chemins vers une branche protégée sont refusés (0.4.0) — ils
+fusionnaient sans rien demander à qui partage l'identité GitHub de l'équipe :
+- `gh api` qui **écrit** une fusion : `repos/…/pulls/…/merge`, `…/merges`, `…/git/refs/heads/…`,
+  `…/branches/…/protection…`, ou `graphql` avec `mergePullRequest`, `enablePullRequestAutoMerge`,
+  `updateRef`. Écrire, c'est une méthode autre que GET, ou un champ (`-f`, `-F`, `--input`) sans
+  méthode : gh passe alors de lui-même en POST ;
+- `git push` dont une destination est une branche protégée — `fusion.branches_protegees` du QG, par
+  défaut `develop`, `master`, `main` —, résolue comme git le fait : `src:dst`, `+dst`,
+  `refs/heads/dst`, un nom seul ; sans destination ou avec `HEAD`, la branche courante et sa
+  destination de poussée. `--all`, `--mirror` et `push.default=matching` pousseraient les protégées
+  avec le reste ; `--delete` d'une protégée aussi. Un `cd` d'un segment précédent est suivi.
+L'orchestrateur, qui a le témoin, n'est pas visé : il pousse son registre de chantier sur la branche
+principale du QG (`equipe/table`, « Le chantier »).
+
 La commande est lue segment par segment (`&&`, `||`, `;`, `|`, `&`, retours à la ligne) : une option
 écrite dans un `echo` voisin ne compte pas pour la fusion.
 
-Les limites, dites plutôt que tues : un alias de `gh`, un script qui l'appelle, `gh api …/merge` et un
-`git push` sur la branche protégée ne sont pas reconnus. Ce garde tient contre la dérive, pas contre
-la malveillance : l'agent a `sudo` dans sa distro, et son témoin est dans son foyer.
+Les limites, dites plutôt que tues : un alias de `gh` ou de `git`, un script ou un interpréteur
+(`node`, `python`) qui les appelle, `curl` vers l'API, un `--input` de graphql qu'on ne lit pas. Ce
+garde tient contre la dérive, pas contre la malveillance : l'agent a `sudo` dans sa distro, et son
+témoin est dans son foyer. La vraie cloison est une identité GitHub propre à l'orchestrateur, seule à
+pouvoir contourner le ruleset de ses branches.
 """
 import datetime
 import json
 import os
 import re
 import shlex
+import subprocess
 import sys
 
 # Deux chemins de la distro, en constantes pour que les tests les remplacent. La marque est déposée
@@ -85,7 +103,21 @@ COQUILLES = {"sh", "bash", "zsh", "dash"}
 # Le filet grossier, quand le jugement fin a planté : un mot d'outil de déploiement ou de fusion.
 # Le même que celui de `garde-fous.sh`, qui ne lance Python que s'il le voit.
 SUSPECT = (r"kubectl|helm|terraform|tofu|\baz\b|\baws\b|gcloud|docker|vercel|netlify|\bfly|railway"
-           r"|heroku|ansible|\bgh\b")
+           r"|heroku|ansible|\bgh\b|\bpush\b")
+
+BRANCHES_PROTEGEES = ["develop", "master", "main"]
+
+# Ce que `gh api` écrit quand il vise une fusion. Le chemin se lit sans son `/` de tête ni sa requête ;
+# `{owner}/{repo}`, que gh remplace lui-même, passe pour un segment comme un autre.
+API_FUSION = re.compile(r"repos/[^/]+/[^/]+/(pulls/[^/]+/merge|merges|git/refs/heads/.+|branches/[^/]+/protection.*)")
+GRAPHQL_FUSION = re.compile(r"mergePullRequest|enablePullRequestAutoMerge|updateRef")
+API_OPTIONS_A_VALEUR = {"-X", "--method", "-H", "--header", "-f", "--raw-field", "-F", "--field", "--input",
+                        "-q", "--jq", "-t", "--template", "--hostname", "--cache", "-p", "--preview"}
+API_CHAMPS = {"-f", "--raw-field", "-F", "--field", "--input"}
+
+# Les options de git avant la sous-commande, et celles de `git push`, qui prennent une valeur séparée.
+GIT_OPTIONS_A_VALEUR = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env"}
+PUSH_OPTIONS_A_VALEUR = {"--repo", "-o", "--push-option", "--receive-pack", "--exec"}
 AFFECTATION = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 
 
@@ -211,7 +243,158 @@ def droit_de_fusionner():
         return False
 
 
-def juger_fusion(commande):
+def branches_protegees(projet):
+    """Celles du QG (`fusion.branches_protegees`), qui remplacent la liste par défaut. Une configuration
+    illisible ne lève pas la protection : elle rend la liste par défaut."""
+    chemin = chemin_de_configuration(projet) if projet else None
+    if chemin:
+        try:
+            with open(chemin, encoding="utf-8") as f:
+                liste = ((json.load(f).get("fusion") or {}).get("branches_protegees"))
+            if isinstance(liste, list) and liste and all(isinstance(b, str) and b for b in liste):
+                return liste
+        except (OSError, ValueError, AttributeError):
+            pass
+    return BRANCHES_PROTEGEES
+
+
+def sous_commande(mots, outil, options_a_valeur):
+    """L'indice du mot qui suit la sous-commande de `outil` dans ce segment, et cette sous-commande,
+    ou (None, None). Les options de l'outil et leur valeur sont sautées ; le dossier de `-C` est rendu."""
+    for i, mot in enumerate(mots):
+        if mot.rsplit("/", 1)[-1] != outil:
+            continue
+        j, dossier = i + 1, None
+        while j < len(mots) and mots[j].startswith("-"):
+            if mots[j] in options_a_valeur:
+                if mots[j] == "-C" and j + 1 < len(mots):
+                    dossier = mots[j + 1]
+                j += 1
+            j += 1
+        if j < len(mots):
+            return j + 1, mots[j], dossier
+    return None, None, None
+
+
+def api_qui_fusionne(mots):
+    """Vrai quand ce segment est un `gh api` qui écrit une fusion."""
+    suite, nom, _ = sous_commande(mots, "gh", {"-R", "--repo"})
+    if nom != "api":
+        return False
+    methode, champs, chemin, valeurs = None, False, None, []
+    i = suite
+    while i < len(mots):
+        mot = mots[i]
+        option, egal, attachee = mot.partition("=")
+        if mot.startswith("-X") and len(mot) > 2:
+            methode = mot[2:]
+        elif option in API_OPTIONS_A_VALEUR:
+            valeur = attachee if egal else (mots[i + 1] if i + 1 < len(mots) else "")
+            i += 0 if egal else 1
+            if option in ("-X", "--method"):
+                methode = valeur
+            elif option in API_CHAMPS:
+                champs = True
+                valeurs.append(valeur)
+        elif not mot.startswith("-") and chemin is None:
+            chemin = mot
+        i += 1
+    if chemin is None:
+        return False
+    chemin = chemin.lstrip("/").split("?", 1)[0]
+    if chemin == "graphql":
+        return any(GRAPHQL_FUSION.search(v) for v in valeurs)
+    ecrit = (methode or ("POST" if champs else "GET")).upper() != "GET"
+    return ecrit and API_FUSION.fullmatch(chemin) is not None
+
+
+def git_lit(dossier, *args):
+    """Une ligne que git rend, ou None : un dépôt absent ou une tête détachée ne disent rien."""
+    try:
+        r = subprocess.run(["git", "-C", dossier, *args], capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return r.stdout.strip() or None if r.returncode == 0 else None
+
+
+def poussee_protegee(mots, dossier, protegees):
+    """La raison du refus quand ce segment est un `git push` qui atteint une branche protégée, ou None."""
+    suite, nom, dossier_c = sous_commande(mots, "git", GIT_OPTIONS_A_VALEUR)
+    if nom != "push":
+        return None
+    if dossier_c:
+        dossier = os.path.join(dossier, os.path.expanduser(dossier_c))
+    positionnels, supprime, i = [], False, suite
+    while i < len(mots):
+        mot = mots[i]
+        if mot in ("--all", "--mirror", "--branches"):
+            return f"{mot} pousserait aussi les branches protégées"
+        if mot == "--delete" or (re.fullmatch(r"-[a-zA-Z]+", mot) and "d" in mot):
+            supprime = True
+        elif mot in PUSH_OPTIONS_A_VALEUR:
+            i += 1
+        elif not mot.startswith("-"):
+            positionnels.append(mot)
+        i += 1
+
+    if "--tags" in mots[suite:] and len(positionnels) < 2:
+        return None  # des étiquettes, aucune branche
+    destinations = []
+    for spec in positionnels[1:]:
+        spec = spec.lstrip("+")
+        source, deux_points, dst = spec.partition(":")
+        destinations.append(dst if deux_points else source)
+        supprime = supprime or (deux_points and not source)  # `:dst` supprime dst
+    if not destinations or "HEAD" in destinations:
+        # Sans destination, git suit `push.default` : `matching` pousse toutes les branches qui
+        # existent des deux côtés, les protégées comprises.
+        if not supprime and not destinations and git_lit(dossier, "config", "push.default") == "matching":
+            return "push.default=matching pousserait aussi les branches protégées"
+        destinations = [d for d in destinations if d != "HEAD"]
+        courante = git_lit(dossier, "symbolic-ref", "--short", "HEAD")
+        if courante:
+            destinations.append(courante)
+        poussee = git_lit(dossier, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{push}")
+        if poussee and "/" in poussee:
+            destinations.append(poussee.split("/", 1)[1])
+    for dst in destinations:
+        nom_branche = dst[len("refs/heads/"):] if dst.startswith("refs/heads/") else dst
+        if nom_branche in protegees:
+            return (f"« {nom_branche} » est une branche protégée" + (" : on ne la supprime pas" if supprime else ""))
+    return None
+
+
+def dossiers_par_segment(segments, depart):
+    """Le dossier où chaque segment s'exécute : un `cd` change celui des segments qui le suivent."""
+    dossier, dossiers = depart, []
+    for mots in segments:
+        dossiers.append(dossier)
+        if mots and mots[0] == "cd" and len(mots) > 1:
+            dossier = os.path.join(dossier, os.path.expanduser(mots[1]))
+    return dossiers
+
+
+SEUL_L_ORCHESTRATEUR = ("Garde-fous KoA : seul l'orchestrateur fusionne (equipe/table, « Fusionner »). "
+                        "Livre ta tête, et adresse ton RÉSULTAT à l'orchestrateur.")
+
+
+def juger_branches_protegees(segments, dossier, projet):
+    """Les chemins de `gh api` et de `git push` vers une branche protégée, pour qui n'a pas le témoin."""
+    if any(api_qui_fusionne(s) for s in segments):
+        return "deny", ("Garde-fous KoA : seul l'orchestrateur fusionne, par l'API comme par gh pr merge "
+                        "(equipe/table, « Fusionner »). Livre ta tête, et adresse ton RÉSULTAT à "
+                        "l'orchestrateur.")
+    protegees = branches_protegees(projet)
+    for mots, ici in zip(segments, dossiers_par_segment(segments, dossier)):
+        motif = poussee_protegee(mots, ici, protegees)
+        if motif:
+            return "deny", (f"Garde-fous KoA : {motif}. On n'y pousse pas, on y fusionne, et seul "
+                            "l'orchestrateur fusionne (equipe/table, « Fusionner ») : pousse la branche "
+                            "de ta mission, et adresse ton RÉSULTAT à l'orchestrateur.")
+    return None, None
+
+
+def juger_fusion(commande, dossier=None, projet=None):
     """Rend (décision, raison) ; décision None quand la commande ne fusionne pas, ou fusionne bien."""
     try:
         segments = mots_par_segment(commande)
@@ -220,14 +403,23 @@ def juger_fusion(commande):
             return "deny", ("Garde-fous KoA : cette commande parle de fusion (gh, pr, merge) et ne se "
                             "lit pas (guillemets non fermés ?). Pour une fusion, on refuse ce qu'on n'a "
                             "pas su lire : récris-la sur une ligne lisible.")
+        # La même règle pour les deux autres chemins, mais seulement pour qui n'a pas le droit : chez
+        # l'orchestrateur, une poussée illisible n'atteint rien qu'il n'ait le droit d'atteindre.
+        if ((all(re.search(m, commande) for m in (r"\bgh\b", r"\bapi\b", r"[Mm]erge"))
+             or all(re.search(m, commande) for m in (r"\bgit\b", r"\bpush\b")))
+                and not droit_de_fusionner()):
+            return "deny", ("Garde-fous KoA : cette commande parle de poussée ou de fusion et ne se lit "
+                            "pas (guillemets non fermés ?). On refuse ce qu'on n'a pas su lire : "
+                            "récris-la sur une ligne lisible.")
         return None, None
 
     fusions = [suite for suite in map(fusion_dans, segments) if suite is not None]
     if not fusions:
-        return None, None
+        if droit_de_fusionner():
+            return None, None
+        return juger_branches_protegees(segments, dossier or os.getcwd(), projet)
     if not droit_de_fusionner():
-        return "deny", ("Garde-fous KoA : seul l'orchestrateur fusionne (equipe/table, « Fusionner »). "
-                        "Livre ta tête, et adresse ton RÉSULTAT à l'orchestrateur.")
+        return "deny", SEUL_L_ORCHESTRATEUR
     # `--admin` est cherché dans toute la commande, pas dans le seul segment : après shlex, un `";"`
     # entre guillemets ne se distingue plus d'un séparateur, et suffirait à l'en détacher.
     tous = [mot for segment in segments for mot in segment]
@@ -323,7 +515,7 @@ def decider(entree, projet):
     """Rend (décision, raison) ; décision None quand la commande n'est ni une fusion à refuser, ni un
     déploiement."""
     commande = (entree.get("tool_input") or {}).get("command") or ""
-    decision, raison = juger_fusion(commande)
+    decision, raison = juger_fusion(commande, entree.get("cwd") or projet, projet)
     if decision:
         return decision, raison
     conf, erreur = lire_configuration(projet)
