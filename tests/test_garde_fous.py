@@ -296,6 +296,132 @@ class Fusion(unittest.TestCase):
         self.assertNotIn("SECRET-456", journal)
 
 
+def depot(branche, *config):
+    """Un dépôt git vide sur `branche` : la branche courante suffit au garde, aucun commit n'est utile."""
+    dossier = tempfile.mkdtemp()
+    subprocess.run(["git", "init", "-q", dossier], check=True)
+    subprocess.run(["git", "-C", dossier, "symbolic-ref", "HEAD", f"refs/heads/{branche}"], check=True)
+    for cle, valeur in config:
+        subprocess.run(["git", "-C", dossier, "config", cle, valeur], check=True)
+    # Écrit dans une commande, le chemin passe par shlex : sous Windows, ses `\` s'y perdraient.
+    return dossier.replace("\\", "/")
+
+
+class BranchesProtegees(unittest.TestCase):
+    """0.4.0 : `gh api` et `git push` atteignaient `develop` sans le témoin — un rôle qui partage
+    l'identité GitHub de l'équipe fusionnait sans rien demander."""
+
+    def setUp(self):
+        self.gf = charger_le_module()
+        distro = tempfile.mkdtemp()
+        self.gf.MARQUE_KOA = os.path.join(distro, "koa-seed")
+        self.gf.TEMOIN_DROITS = os.path.join(distro, "droits")
+        open(self.gf.MARQUE_KOA, "w").close()  # une distro née de KoA, sans le droit
+        self.projet = tempfile.mkdtemp()
+
+    def juger(self, commande, cwd=None):
+        entree = {"session_id": "s1", "tool_name": "Bash", "tool_input": {"command": commande},
+                  "cwd": cwd or self.projet}
+        return self.gf.decider(entree, self.projet)
+
+    def refuses(self, commandes, extrait, cwd=None):
+        for commande in commandes:
+            with self.subTest(commande=commande):
+                decision, raison = self.juger(commande, cwd)
+                self.assertEqual(decision, "deny")
+                self.assertIn(extrait, raison)
+
+    def permis(self, commandes, cwd=None):
+        for commande in commandes:
+            with self.subTest(commande=commande):
+                self.assertEqual(self.juger(commande, cwd), (None, None))
+
+    def donner_le_droit(self):
+        with open(self.gf.TEMOIN_DROITS, "w", encoding="utf-8") as f:
+            f.write("fusionner\n")
+
+    API_QUI_FUSIONNE = [
+        "gh api -X PUT repos/o/r/pulls/1/merge",
+        "gh api repos/o/r/merges -f base=develop -f head=x",
+        "gh api graphql -f query='mutation{mergePullRequest(input:{pullRequestId:\"x\"}){clientMutationId}}'",
+        "gh api --method=PATCH /repos/{owner}/{repo}/git/refs/heads/develop -f sha=abc",
+        "gh api -XDELETE repos/o/r/branches/develop/protection",
+        "gh api repos/o/r/pulls/1/merge --input corps.json",
+    ]
+
+    def test_gh_api_qui_ecrit_une_fusion_est_refuse(self):
+        self.refuses(self.API_QUI_FUSIONNE, "par l'API")
+
+    def test_gh_api_qui_lit_passe(self):
+        self.permis(["gh api repos/o/r/pulls/1/merge",  # GET : la PR est-elle fusionnée ?
+                     "gh api repos/o/r/pulls/1 --jq .mergeable",
+                     "gh api -X GET repos/o/r/git/refs/heads/develop",
+                     "gh api graphql -f query='{viewer{login}}'",
+                     "gh api repos/o/r/issues/3/comments -f body=merge"])
+
+    def test_git_push_vers_une_branche_protegee_est_refuse(self):
+        ailleurs = depot("feat/x")
+        self.refuses(["git push origin develop",
+                      f"git -C {ailleurs} push origin HEAD:refs/heads/develop",
+                      "git push origin +feat/x:master",
+                      "git push -u origin main"], "branche protégée", cwd=ailleurs)
+
+    def test_git_push_sans_destination_lit_la_branche_courante(self):
+        sur_develop = depot("develop")
+        self.refuses(["git push", "git push origin", "git push origin HEAD"], "« develop »", cwd=sur_develop)
+        # Le `cd` d'un segment précédent est suivi, comme `-C`.
+        self.refuses([f"cd {sur_develop} && git push", f"git -C {sur_develop} push"], "« develop »")
+
+    def test_supprimer_une_branche_protegee_est_refuse(self):
+        self.refuses(["git push origin :develop", "git push origin --delete main", "git push -d origin master"],
+                     "on ne la supprime pas", cwd=depot("feat/x"))
+
+    def test_ce_qui_pousse_tout_est_refuse(self):
+        self.refuses(["git push --all origin", "git push --mirror", "git push --branches"], "pousserait aussi",
+                     cwd=depot("feat/x"))
+        self.refuses(["git push"], "matching", cwd=depot("feat/x", ("push.default", "matching")))
+
+    def test_pousser_sa_branche_de_mission_passe(self):
+        sur_feature = depot("feat/x")
+        self.permis(["git push -u origin feat/x",
+                     "git push origin develop:feat/x",
+                     "git push --force-with-lease origin feat/x",
+                     "git push origin --delete feat/old",
+                     "git push",
+                     "git push --tags",
+                     "git status && git log --oneline -3"], cwd=sur_feature)
+        # Des étiquettes poussées depuis `develop` ne poussent pas `develop`.
+        self.permis(["git push --tags", "git push origin v1.2.0"], cwd=depot("develop"))
+
+    def test_le_qg_declare_ses_branches_protegees(self):
+        os.makedirs(os.path.join(self.projet, ".claude"))
+        with open(os.path.join(self.projet, ".claude", "garde-fous.json"), "w", encoding="utf-8") as f:
+            json.dump({"fusion": {"branches_protegees": ["prod"]}}, f)
+        self.permis(["git push origin develop"], cwd=depot("feat/x"))
+        self.refuses(["git push origin prod"], "« prod »", cwd=depot("feat/x"))
+
+    def test_une_configuration_illisible_garde_la_liste_par_defaut(self):
+        os.makedirs(os.path.join(self.projet, ".claude"))
+        with open(os.path.join(self.projet, ".claude", "garde-fous.json"), "w", encoding="utf-8") as f:
+            f.write("{ pas du json")
+        self.refuses(["git push origin develop"], "« develop »", cwd=depot("feat/x"))
+
+    def test_l_orchestrateur_pousse_et_fusionne_par_l_api(self):
+        # Il pousse son registre de chantier sur la branche principale du QG (equipe/table, « Le chantier »).
+        self.donner_le_droit()
+        self.permis(self.API_QUI_FUSIONNE + ["git push origin develop", "git push --all origin",
+                                             'git push origin "develop'], cwd=depot("develop"))
+
+    def test_hors_d_une_distro_koa_la_question_ne_se_pose_pas(self):
+        os.remove(self.gf.MARQUE_KOA)
+        self.permis(self.API_QUI_FUSIONNE + ["git push origin develop"], cwd=depot("develop"))
+
+    def test_une_poussee_illisible_est_refusee(self):
+        self.refuses(['git push origin "develop', "gh api -X PUT 'repos/o/r/pulls/1/merge"], "ne se lit pas")
+        # Illisible, mais ni poussée ni fusion : ce n'est pas l'affaire de cette section.
+        self.permis(['git commit -m "pas fermé'])
+
+
 class GardeQuiPlante(unittest.TestCase):
     """Un garde qui plante sortait en code 1 : Claude Code le lit comme une erreur non bloquante, et
     le déploiement passait."""
@@ -355,6 +481,12 @@ class TriEnSh(unittest.TestCase):
         code, sortie = self.lancer("kubectl apply -f x.yaml", chemin=self.sans_python())
         self.assertEqual(code, 0)
         self.assertEqual(json.loads(sortie)["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_une_poussee_atteint_python(self):
+        # « push » et non « git » : une branche protégée se juge en Python, un `git status` jamais.
+        self.assertEqual(json.loads(self.lancer("git push origin develop", chemin=self.sans_python())[1])
+                         ["hookSpecificOutput"]["permissionDecision"], "deny")
+        self.assertEqual(self.lancer("git status", chemin=self.sans_python()), (0, ""))
 
     def test_avec_python_le_jugement_fin_reprend(self):
         self.assertEqual(self.lancer("docker compose down"), (0, ""))

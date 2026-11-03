@@ -91,8 +91,10 @@ commande et son verdict, sur le SHA complet que tu vas fusionner — un critère
 est prouvé aussi. Tu ne rejoues toi-même que ce qui manque, se contredit, porte sur une autre tête ou un autre
 environnement, ou touche un risque critique ; à partir de C2, au moins une preuve par Owner. Une preuve vaut pour sa
 tête : un commit de plus l'invalide, et le critère se rejoue ou passe en « Pas vérifié » (`unverified`). Puis fusionne
-(`gh pr merge … --match-head-commit … --squash`) dans la branche de la feature. Une vague close lance la suivante, et
-s'actualise. Un défaut non bloquant va au « Suivi » (`follow_up`) ; un changement de périmètre est un **avenant**.
+(`gh pr merge … --match-head-commit … --squash`) dans la branche de la feature — **`--merge` si la PR porte une
+fusion** (`git log --merges <base>..<tête>`) ou un SHA épinglé ailleurs (workflow, action) : le squash coupe
+l'ascendance, la fusion suivante rejoue les conflits déjà résolus, et l'épingle devient injoignable. Une vague close
+lance la suivante, et s'actualise. Un défaut non bloquant va au « Suivi » (`follow_up`) ; un changement de périmètre est un **avenant**.
 
 ## 7. Finaliser une feature
 
@@ -100,7 +102,8 @@ Mets la feature à jour de `develop`, fige une tête, et envoie-la en **un messa
 (suite complète, bout-en-bout d'API), QA si un parcours change (recette au navigateur), SecOps si la surface de
 sécurité change. **Une pile à la fois** : la fiche le dit, et chacun lit `wsl_sante` avant de monter la sienne. Chaque
 `BLOQUANT` devient une mission de correction sur la feature, puis on rejoue le delta. Tout accepté : PR de la feature
-vers `develop`, `--squash`, `--match-head-commit`. Tiens les capacités de la feature au registre (`capabilities`,
+vers `develop`, `--squash` — ou `--merge` si elle porte une fusion, ce que la mise à jour de `develop` fait souvent
+(§ 6) —, `--match-head-commit`. Tiens les capacités de la feature au registre (`capabilities`,
 `finalized`) et actualise.
 
 ## 8. Livrer
@@ -128,7 +131,11 @@ en citant ces chemins plutôt qu'en les recopiant. Puis :
 3. **Ferme chaque agent** (`agent_fermer`). KoA refuse celui qui n'a pas posté sa `CLÔTURE` : redemande-la. Un agent
    qui ne peut plus clore se ferme avec `sans_cloture` et la raison — elle reste à la table, et va aux observations.
    Note au registre (`team`) l'identifiant de conversation que KoA rend pour chacun : il sert à le reprendre **dans ce chantier**.
-4. **Clos en dernier** (`/koa:clore`) : tu capitalises ce que le chantier t'a appris, à toi. Ta `REPRISE` tient en un
+4. **Laisse les dépôts sans orphelin** : chaque PR ouverte du chantier a une décision — fusionnée, fermée avec sa
+   raison, ou reportée au « Suivi » ; chaque branche fusionnée ou abandonnée est supprimée, son SHA dit dans ton
+   `COMPTE RENDU` ; une trace à garder devient une étiquette `archive/<branche>`. Une PR ou une branche laissée sans
+   décision se lit, au chantier suivant, comme un travail en cours.
+5. **Clos en dernier** (`/koa:clore`) : tu capitalises ce que le chantier t'a appris, à toi. Ta `REPRISE` tient en un
    écran — l'état courant ; l'historique est au QG —, et ton `COMPTE RENDU` dit à l'humain que le chantier suivant
    s'ouvre sur une session neuve.
 
