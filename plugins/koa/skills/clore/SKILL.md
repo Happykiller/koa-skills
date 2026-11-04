@@ -173,3 +173,8 @@ Non refermé : <ce qui tourne ou reste sale> — ou « rien »
 se fermer sans rien perdre. « Capitalisation : rien » est une clôture ; un silence n'en est pas une. Une `MISSION`
 reçue après la rend caduque : la nouvelle mission finie, tu clos de nouveau. `sans-capi` et `sans-push` postent la
 leur aussi, en disant ce qu'ils ont sauté.
+
+**La `CLÔTURE` est ton dernier geste.** Elle dit que ta session peut être fermée *maintenant* : l'orchestrateur ou
+l'opérateur peuvent le faire dès que tu as rendu la main. Rien après elle — ni vérification, ni poussée, ni arrêt :
+tout cela est au § 7, avant. Une vérification qui révèle encore quelque chose à faire se fait, puis la `CLÔTURE` se
+poste, pas l'inverse.
