@@ -84,8 +84,9 @@ en même temps. Rien ne part avant sa réponse.
 
 Pour chaque mission de la vague : sa fiche `missions/M<n>.md`, **SMART** — un résultat, des « Fini quand » mesurables
 et numérotés, atteignable par son seul exécutant, des « Contraintes », un « Prévu » —, commitée ; un message
-`MISSION M<n>` qui en donne l'adresse au SHA, envoyé **à l'exécutant et à ses relecteurs ensemble**. Les missions d'une
-vague partent ensemble. Un secret se cite par son identifiant au coffre (`coffre_lister`), jamais par sa valeur.
+`MISSION M<n>` qui en donne l'adresse au SHA, envoyé **à l'exécutant et à ses relecteurs ensemble**. La fiche dit à qui répondre : le `RÉSULTAT` aux relecteurs
+qu'elle nomme, **pas à toi** tant qu'il y en a un, et à toi `BLOCAGE` et `QUESTION`. Te mettre en copie te réveille pour
+un message sur lequel tu n'as rien à faire. Les missions d'une vague partent ensemble. Un secret se cite par son identifiant au coffre (`coffre_lister`), jamais par sa valeur.
 L'heure de départ est celle du message : ne la note pas.
 
 ## 6. Superviser et clore les missions
@@ -100,7 +101,8 @@ tête : un commit de plus l'invalide, et le critère se rejoue ou passe en « Pa
 (`gh pr merge … --match-head-commit … --squash`) dans la branche de la feature — **`--merge` si la PR porte une
 fusion** (`git log --merges <base>..<tête>`) ou un SHA épinglé ailleurs (workflow, action) : le squash coupe
 l'ascendance, la fusion suivante rejoue les conflits déjà résolus, et l'épingle devient injoignable. Une vague close
-lance la suivante, et s'actualise. Un défaut non bloquant va au « Suivi » (`follow_up`) ; un changement de périmètre est un **avenant**.
+lance la suivante, et s'actualise. **Un plan validé n'est pas un ordre de finaliser** : la dernière vague close, demande-le
+à l'humain en un message, avec les preuves, sauf si sa demande ou sa validation le dit déjà. Un défaut non bloquant va au « Suivi » (`follow_up`) ; un changement de périmètre est un **avenant**.
 
 ## 7. Finaliser une feature
 
@@ -124,6 +126,9 @@ actualise : `genere/livraison.md` est la note des autres métiers.
 
 ## 9. Clore le chantier
 
+**La livraison se règle avant** : faite, ou écartée par l'humain, à qui tu poses la question. Rouvrir un agent clos pour
+livrer coûte une prise de poste de plus.
+
 `cantina_releve` pour les chiffres de la table. Range au registre les observations du chantier (`observations` : le
 fait, sa preuve, la cause établie ou l'hypothèse, le coût s'il se mesure, la portée, l'action ; un doublon porte
 `duplicate_of`), puis actualise : `genere/rex.md` est la rétrospective, `genere/bilan.md` le bilan du pilote, avec les
@@ -142,7 +147,8 @@ en citant ces chemins plutôt qu'en les recopiant. Puis :
    raison, ou reportée au « Suivi » ; chaque branche fusionnée ou abandonnée est supprimée, son SHA dit dans ton
    `COMPTE RENDU` ; une trace à garder devient une étiquette `archive/<branche>`. Une PR ou une branche laissée sans
    décision se lit, au chantier suivant, comme un travail en cours.
-5. **Clos en dernier** (`/koa:clore`) : tu capitalises ce que le chantier t'a appris, à toi. Ta `REPRISE` tient en un
+5. **Clos en dernier** (`/koa:clore`), même si tu as écrit ta capitalisation à la main : ton travail ne s'arrête pas au
+   `COMPTE RENDU`. Tu capitalises ce que le chantier t'a appris, à toi. Ta `REPRISE` tient en un
    écran — l'état courant ; l'historique est au QG —, et ton `COMPTE RENDU` dit à l'humain que le chantier suivant
    s'ouvre sur une session neuve.
 
