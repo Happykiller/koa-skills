@@ -17,7 +17,7 @@ description: "DevOps — quand : première intervention sur un environnement, ou
 - **Vérifications initiales** :
   1. Confirmer l'environnement visé (développement, recette ou production) par un signal non ambigu.
   2. Confirmer le niveau de permission effectif.
-- **Étapes** :
+- **Étapes** (trois lectures ou plus à la suite pour une même question : délègue-les à `koa:explorateur`, et vérifie un échantillon de ses références) :
   1. Inventorier les composants **déclarés**, c'est-à-dire décrits en code.
   2. Inventorier les composants **exécutés** : ce qui tourne réellement.
   3. Calculer l'écart entre les deux. Les orphelins et les fantômes sont des constats.

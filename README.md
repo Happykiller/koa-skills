@@ -12,7 +12,7 @@ confiance**, et cloisonnée par les accès plutôt que par la consigne.
 
 | Plugin | Ce qu'il apporte |
 |---|---|
-| `koa` | `monter-le-qg` : monter, puis tenir conforme, le QG d'un cluster — le dépôt qui porte la carte de ses dépôts, ses environnements, sa KB, ses plugins épinglés · `mener-un-chantier` : l'orchestrateur mène un chantier d'équipe — inventaire, tour de table, plan en vagues et Gantt au QG, missions, finaliser, livrer · `poser-la-memoire` : le ghost — la KB et le `CLAUDE.md` d'un projet seul, ou leur répartition dans un cluster (QG, dépôt de la stack, seed d'un agent) · `capitaliser` : ranger ce qu'une session a appris au bon étage, écrit jusqu'au QG, proposé au-dessus · `clore` : la fin de session d'un agent de cluster, QG compris |
+| `koa` | `monter-le-qg` : monter, puis tenir conforme, le QG d'un cluster — le dépôt qui porte la carte de ses dépôts, ses environnements, sa KB, ses plugins épinglés · `mener-un-chantier` : l'orchestrateur mène un chantier d'équipe — inventaire, tour de table, plan en vagues et Gantt au QG, missions, finaliser, livrer · `poser-la-memoire` : le ghost — la KB et le `CLAUDE.md` d'un projet seul, ou leur répartition dans un cluster (QG, dépôt de la stack, seed d'un agent) · `capitaliser` : ranger ce qu'une session a appris au bon étage, écrit jusqu'au QG, proposé au-dessus · `clore` : la fin de session d'un agent de cluster, QG compris · le sous-agent `explorateur` : lit à la place d'un agent, en lecture seule et sur un plus petit modèle, et ne lui rend que la synthèse |
 | `garde-fous` | un hook qui refuse toute commande de déploiement visant une cible que le QG ne déclare pas permise, ou qu'il déclare interdite aux agents ; et toute fusion sans `--match-head-commit`, avec `--admin`, ou hors de l'orchestrateur — par `gh pr merge`, l'API ou un `git push` sur une branche protégée |
 | `equipe-devops` | les vingt workflows du rôle DevOps : analyser une infrastructure, déployer, revenir en arrière, diagnostiquer, sauvegarder… |
 | `equipe-tech` | les gestes du rôle Tech : `corriger-une-anomalie` (test rouge d'abord), `implementer-une-evolution`, `verifier-avant-de-livrer` (diff relu, tests lancés et cités, « Pas vérifié » écrit), `relire-une-modification` (preuves rejouées, constats classés) |
@@ -22,7 +22,7 @@ confiance**, et cloisonnée par les accès plutôt que par la consigne.
 Une fois par dépôt, depuis ce dépôt :
 
 ```bash
-claude plugin marketplace add https://github.com/Happykiller/koa-skills.git#v0.9.2
+claude plugin marketplace add https://github.com/Happykiller/koa-skills.git#v0.10.0
 claude plugin install garde-fous@koa-skills --scope project
 claude plugin install koa@koa-skills --scope project
 claude plugin install equipe-devops@koa-skills --scope project
@@ -35,7 +35,7 @@ Ou, pour que le dépôt les déclare lui-même, dans son `.claude/settings.json`
 ```json
 {
   "extraKnownMarketplaces": {
-    "koa-skills": { "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.9.2" } }
+    "koa-skills": { "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.10.0" } }
   },
   "enabledPlugins": {
     "garde-fous@koa-skills": true,

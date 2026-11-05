@@ -2,6 +2,7 @@
 """Ce que `claude plugin validate` ne voit pas, vérifié avant chaque publication.
 
 - chaque skill a un frontmatter en première ligne, un `name` égal à son dossier, une description ;
+- chaque sous-agent livré a un `name` égal à son fichier, une description, et déclare `tools` et `model` ;
 - la marketplace liste exactement les plugins du dépôt, sous le nom de leur `plugin.json` ;
 - aucun motif de fuite : chemin personnel, jeton, adresse électronique ;
 - aucun format pensé pour d'autres outils (le framework est typé Claude) ;
@@ -64,6 +65,29 @@ def frontmatter(texte):
     return champs
 
 
+def fautes_agent(plugin, nom, texte):
+    """Sans `model`, un sous-agent hérite du modèle de la session : c'est le défaut que ces agents existent pour éviter.
+    Mesuré sur un cluster, le 05/11/2026 : le seul sous-agent lancé en 2 509 tours tournait sur le modèle de sa session.
+    Sans `tools`, il hérite de tous les outils, écriture comprise. Une description se paie à chaque tour, comme celle
+    d'une skill."""
+    fm = frontmatter(texte)
+    if fm is None:
+        return [f"{plugin}:{nom} : pas de frontmatter en première ligne"]
+    fautes = []
+    if fm.get("name") != nom:
+        fautes.append(f"{plugin}:{nom} : name « {fm.get('name')} » différent du fichier")
+    description = fm.get("description") or ""
+    if not description or len(description) > BUDGET_DESCRIPTION:
+        fautes.append(f"{plugin}:{nom} : description absente ou au-delà de {BUDGET_DESCRIPTION} caractères ({len(description)})")
+    elif not DECLENCHEUR.search(description):
+        fautes.append(f"{plugin}:{nom} : la description ne dit pas quand se déclencher (« quand : … »)")
+    if fm.get("model") in (None, "", "inherit"):
+        fautes.append(f"{plugin}:{nom} : pas de `model` explicite, il hériterait de celui de la session")
+    if not fm.get("tools"):
+        fautes.append(f"{plugin}:{nom} : pas de `tools` explicites, il hériterait de tous les outils")
+    return fautes
+
+
 def plugins():
     marche = json.loads(lire(os.path.join(RACINE, ".claude-plugin", "marketplace.json")))
     return marche, sorted(marche["plugins"], key=lambda p: p["name"])
@@ -98,6 +122,11 @@ def verifier():
                 fautes.append(f"{p['name']}:{nom} : la description ne dit pas quand se déclencher "
                               "(« quand : … » ou « par /… »)")
             total += len(description)
+        dossier_agents = os.path.join(RACINE, p["source"], "agents")
+        for f in sorted(os.listdir(dossier_agents)) if os.path.isdir(dossier_agents) else []:
+            texte = lire(os.path.join(dossier_agents, f))
+            fautes += fautes_agent(p["name"], f[:-3], texte)
+            total += len((frontmatter(texte) or {}).get("description") or "")
     if total > BUDGET_TOTAL:
         fautes.append(f"les descriptions de skills pèsent {total} caractères, au-delà de {BUDGET_TOTAL} : "
                       "chaque session les charge toutes")
@@ -139,6 +168,9 @@ def catalogue():
         dossier_skills = os.path.join(RACINE, p["source"], "skills")
         for nom in sorted(os.listdir(dossier_skills)) if os.path.isdir(dossier_skills) else []:
             lignes.append(f"skill {p['name']}:{nom}")
+        dossier_agents = os.path.join(RACINE, p["source"], "agents")
+        for f in sorted(os.listdir(dossier_agents)) if os.path.isdir(dossier_agents) else []:
+            lignes.append(f"agent {p['name']}:{f[:-3]}")
     return "\n".join(lignes)
 
 
