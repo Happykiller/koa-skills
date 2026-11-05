@@ -62,20 +62,16 @@ fusionner pour l'orchestrateur. Une étape sans objet se dit en un mot et se sau
 ## 1. Recenser
 
 ```bash
-echo "cluster=$KOA_CLUSTER qg=$KOA_QG"
-find "$HOME" -maxdepth 3 -name .git -prune 2>/dev/null | sed 's|/\.git$||' | sort
-for r in $(find "$HOME" -maxdepth 3 -name .git -prune 2>/dev/null | sed 's|/\.git$||'); do
-  [ -n "$(git -C "$r" status --porcelain)" ] && echo "modifié : $r"
-  git -C "$r" rev-list --count @{upstream}..HEAD 2>/dev/null | grep -qv '^0$' && echo "non poussé : $r"
-done
-docker compose ls 2>/dev/null
-docker ps --format '{{.Names}}\t{{.Label "com.docker.compose.project"}}'
-grep -ril -E 'name: .*sync|description: .*(sync|synchro)' "$HOME"/*/.claude/skills/*/SKILL.md 2>/dev/null
+sh "${CLAUDE_PLUGIN_ROOT}/scripts/cloture.sh" recenser
 ```
 
-Le périmètre : **les dépôts modifiés ou non poussés** — le QG compris, s'il l'est après l'étape 2. Confronte-le à la carte des dépôts du
-QG (`$KOA_QG/CLAUDE.md`) : un dépôt sur le disque absent de la carte se traite **et** se signale. Ordre :
-les dépôts de la stack, puis la seed, puis **le QG en dernier** — la capitalisation y écrit.
+Il rend, en un appel, les dépôts modifiés ou non poussés, ceux absents de la carte du QG, les composes, les conteneurs et
+les skills de synchro. Le périmètre : **les dépôts modifiés ou non poussés** — le QG compris, s'il l'est après l'étape 2. Un dépôt
+hors de la carte se traite **et** se signale. Ordre : les dépôts de la stack, puis la seed, puis **le QG en dernier** — la
+capitalisation y écrit.
+
+**« Périmètre : vide », et la capitalisation n'écrit rien : va droit à l'étape 8.** Le script vient de vérifier ce que les
+étapes 3 à 7 établiraient.
 
 ## 2. Capitaliser
 
@@ -136,14 +132,10 @@ identifié reste en vie et part dans le rapport.
 ## 7. Vérifier, puis rendre compte
 
 ```bash
-for r in <dépôts du périmètre> "$KOA_QG"; do
-  printf '%-28s ' "${r#$HOME/}"
-  [ -z "$(git -C "$r" status --porcelain)" ] && printf 'propre  ' || printf 'SALE    '
-  git -C "$r" rev-list --left-right --count @{upstream}...HEAD 2>/dev/null \
-    | awk '{print ($1==0 && $2==0) ? "à jour" : "retard/avance : "$1"/"$2}'
-done
-docker ps --format '{{.Names}}\t{{.Label "com.docker.compose.project"}}'
+sh "${CLAUDE_PLUGIN_ROOT}/scripts/cloture.sh" verifier
 ```
+
+Il sort en erreur si un dépôt reste sale ou décalé de son amont : c'est un arrêt.
 
 ```
 ## Clôture — <rôle>, cluster <cluster>

@@ -33,7 +33,9 @@ cite-les. Sans cet outil, `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/livrables.py" 
 les mêmes vues, heures et coûts « pas mesuré », états tirés d'un champ `state` que tu tiens alors toi-même.
 
 Actualise **aux jalons**, jamais à chaque message : plan soumis, vague close, finalisation, livraison, clôture. Ne
-retouche pas une vue à la main : la suivante l'écraserait — corrige le registre. Commite le registre et `genere/`.
+retouche pas une vue à la main : la suivante l'écraserait — corrige le registre. Passe `committer: true` : KoA committe le
+registre et `genere/`, sans tour de plus, et ne pousse pas. Pousse avec ton prochain envoi de fiches, au plus tard à la
+clôture ; une réponse sans `commit` veut dire que c'est à toi de committer.
 
 ## 1. Ouvrir le dossier
 
@@ -58,7 +60,7 @@ porte le contexte utile, et remplace l'identifiant et le poste au registre à sa
 ## 3. Le tour de table
 
 Une `CONSULTATION`, **un seul envoi** (`cantina_dire`, `a` : toutes les adresses des spécialistes concernés).
-Puis `cantina_attendre`, une fois, sans adresse ; relève chaque `AVIS` par `cantina_courrier`. Tu ne débats pas :
+Puis `cantina_attendre`, sans adresse : il rend chaque `AVIS` en entier, sans `cantina_courrier` derrière. Tu ne débats pas :
 tu consolides dans `avis.md`, et chaque contradiction devient une **décision à l'humain**, avec ses options.
 
 ## 4. Le plan et son Gantt
@@ -88,9 +90,9 @@ L'heure de départ est celle du message : ne la note pas.
 
 ## 6. Superviser et clore les missions
 
-`cantina_attendre` une fois, puis `cantina_courrier`. Une mission qui dépasse son « Prévu » de moitié sans nouvelle
-est une dérive : fais le point avec l'exécutant — recadrer, découper ou replanifier. Un `RÉSULTAT` est un indice :
-c'est la `REVUE` qui prouve. À chaque `REVUE` acceptée, **contrôle sans rejouer** : chaque « Fini quand » y porte sa
+`cantina_attendre`, sans adresse : il rend le courrier. Une mission qui dépasse son « Prévu » de moitié sans nouvelle
+est une dérive : fais le point avec l'exécutant — recadrer, découper ou replanifier. Le `RÉSULTAT` va aux relecteurs de la
+fiche, et c'est la `REVUE` qui te réveille et qui prouve ; une fiche sans relecteur te l'adresse. À chaque `REVUE` acceptée, **contrôle sans rejouer** : chaque « Fini quand » y porte sa
 commande et son verdict, sur le SHA complet que tu vas fusionner — un critère que la CI requise a vérifié sur ce SHA
 est prouvé aussi. Tu ne rejoues toi-même que ce qui manque, se contredit, porte sur une autre tête ou un autre
 environnement, ou touche un risque critique ; à partir de C2, au moins une preuve par Owner. Une preuve vaut pour sa
@@ -130,7 +132,7 @@ en citant ces chemins plutôt qu'en les recopiant. Puis :
 
 1. **Demande la clôture à tous, en un envoi** : `CLORE — fin du chantier <chantier>` (`cantina_dire`, `a` : toutes les
    adresses). Chacun lance `/koa:clore` et te répond `CLÔTURE — <rôle>`.
-2. `cantina_attendre`, une fois, puis `cantina_courrier` : une `CLÔTURE` par agent. Fusionne au QG les branches
+2. `cantina_attendre` : il rend le courrier, jusqu'à une `CLÔTURE` par agent. Fusionne au QG les branches
    `capitalisation/…` qu'elles annoncent, après les avoir relues.
 3. **Ferme chaque agent** (`agent_fermer`). KoA refuse celui qui n'a pas posté sa `CLÔTURE` : redemande-la. Un agent
    qui ne peut plus clore se ferme avec `sans_cloture` et la raison — elle reste à la table, et va aux observations.

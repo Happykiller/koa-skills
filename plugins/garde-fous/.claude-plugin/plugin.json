@@ -1,6 +1,6 @@
 {
   "name": "garde-fous",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Refuse toute commande de déploiement qui ne vise pas une cible que le QG du cluster déclare permise, toute cible interdite aux agents, et une fusion sans --match-head-commit, avec --admin ou hors de l'orchestrateur — par gh pr merge, par l'API ou par un git push sur une branche protégée. Framework agentique KoA.",
   "author": {
     "name": "Happykiller"

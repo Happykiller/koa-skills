@@ -375,22 +375,22 @@ def dossiers_par_segment(segments, depart):
 
 
 SEUL_L_ORCHESTRATEUR = ("Garde-fous KoA : seul l'orchestrateur fusionne (equipe/table, « Fusionner »). "
-                        "Livre ta tête, et adresse ton RÉSULTAT à l'orchestrateur.")
+                        "Livre ta tête, et adresse ton RÉSULTAT aux relecteurs de ta fiche.")
 
 
 def juger_branches_protegees(segments, dossier, projet):
     """Les chemins de `gh api` et de `git push` vers une branche protégée, pour qui n'a pas le témoin."""
     if any(api_qui_fusionne(s) for s in segments):
         return "deny", ("Garde-fous KoA : seul l'orchestrateur fusionne, par l'API comme par gh pr merge "
-                        "(equipe/table, « Fusionner »). Livre ta tête, et adresse ton RÉSULTAT à "
-                        "l'orchestrateur.")
+                        "(equipe/table, « Fusionner »). Livre ta tête, et adresse ton RÉSULTAT aux "
+                        "relecteurs de ta fiche.")
     protegees = branches_protegees(projet)
     for mots, ici in zip(segments, dossiers_par_segment(segments, dossier)):
         motif = poussee_protegee(mots, ici, protegees)
         if motif:
             return "deny", (f"Garde-fous KoA : {motif}. On n'y pousse pas, on y fusionne, et seul "
                             "l'orchestrateur fusionne (equipe/table, « Fusionner ») : pousse la branche "
-                            "de ta mission, et adresse ton RÉSULTAT à l'orchestrateur.")
+                            "de ta mission, et adresse ton RÉSULTAT aux relecteurs de ta fiche.")
     return None, None
 
 
