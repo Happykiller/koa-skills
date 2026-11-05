@@ -49,7 +49,10 @@ portent ce qu'il faut savoir.
 registre (`team`). Deux sessions du même rôle sont deux files de travail. Un rôle qui manque s'ouvre
 (`agent_ouvrir`) ou se demande à l'humain — jamais supposé présent. **Un chantier neuf part d'agents neufs** : une
 prise de poste coûte peu, le contexte d'un chantier clos coûte à chaque appel. Dans le même chantier, un rôle passé et
-fermé **se reprend** : `agent_ouvrir` avec `reprendre` et l'identifiant de conversation noté au registre.
+fermé **se reprend** : `agent_ouvrir` avec `reprendre` et l'identifiant de conversation noté au registre. **Sur ce
+poste seulement** : une conversation reste dans la distro où elle a tourné, et le registre, lui, voyage par git. Sur un
+autre poste que celui noté, ne passe pas `reprendre` — KoA le refuserait — : ouvre un agent neuf avec une fiche qui
+porte le contexte utile, et remplace l'identifiant et le poste au registre à sa fermeture.
 
 ## 3. Le tour de table
 
@@ -130,7 +133,8 @@ en citant ces chemins plutôt qu'en les recopiant. Puis :
    `capitalisation/…` qu'elles annoncent, après les avoir relues.
 3. **Ferme chaque agent** (`agent_fermer`). KoA refuse celui qui n'a pas posté sa `CLÔTURE` : redemande-la. Un agent
    qui ne peut plus clore se ferme avec `sans_cloture` et la raison — elle reste à la table, et va aux observations.
-   Note au registre (`team`) l'identifiant de conversation que KoA rend pour chacun : il sert à le reprendre **dans ce chantier**.
+   Note au registre (`team`) l'identifiant de conversation **et le poste** que KoA rend pour chacun : il sert à le
+   reprendre **dans ce chantier, sur ce poste**.
 4. **Laisse les dépôts sans orphelin** : chaque PR ouverte du chantier a une décision — fusionnée, fermée avec sa
    raison, ou reportée au « Suivi » ; chaque branche fusionnée ou abandonnée est supprimée, son SHA dit dans ton
    `COMPTE RENDU` ; une trace à garder devient une étiquette `archive/<branche>`. Une PR ou une branche laissée sans
