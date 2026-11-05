@@ -43,6 +43,26 @@ class MotifsDeFuite(unittest.TestCase):
         self.assertTrue(verifier.AJOUT_NU.search("claude plugin marketplace add Happykiller/koa-skills\n"))
         self.assertTrue(verifier.AJOUT_NU.search("(`claude plugin marketplace add Happykiller/koa-skills`, puis"))
 
+    def test_un_agent_sans_modele_ou_sans_outils_est_une_faute(self):
+        entete = 'name: lecteur\ndescription: "Quand : une lecture."\n'
+        complet = f"---\n{entete}tools: Read\nmodel: sonnet\n---\ncorps\n"
+        self.assertEqual(verifier.fautes_agent("p", "lecteur", complet), [])
+        for texte, attendu in (
+            (f"---\n{entete}tools: Read\n---\ncorps\n", "model"),
+            (f"---\n{entete}tools: Read\nmodel: inherit\n---\ncorps\n", "model"),
+            (f"---\n{entete}model: sonnet\n---\ncorps\n", "tools"),
+        ):
+            fautes = verifier.fautes_agent("p", "lecteur", texte)
+            self.assertEqual(len(fautes), 1, fautes)
+            self.assertIn(attendu, fautes[0])
+
+    def test_un_agent_doit_porter_le_nom_de_son_fichier(self):
+        texte = '---\nname: autre\ndescription: "Quand : une lecture."\ntools: Read\nmodel: sonnet\n---\ncorps\n'
+        self.assertIn("différent du fichier", verifier.fautes_agent("p", "lecteur", texte)[0])
+
+    def test_le_catalogue_porte_les_agents_que_les_livres_citent(self):
+        self.assertIn("agent koa:explorateur", verifier.catalogue().split("\n"))
+
     def test_le_depot_est_propre(self):
         self.assertEqual(verifier.verifier(), [])
 

@@ -17,6 +17,8 @@ Une correction sans test qui l'a vue échouer est une supposition. Celle-ci se p
 2. **Remonter à la couche racine.** Le symptôme apparaît souvent loin de la cause : une frontière qui
    n'a pas validé, une règle de données, une hypothèse d'instance unique. Cherche **plusieurs** causes
    possibles avant d'en retenir une.
+   - Trois lectures ou plus à la suite pour une même question : délègue la **collecte** à `koa:explorateur`, et
+     vérifie un échantillon de ses références. Le diagnostic reste à toi.
 3. **Corriger à la source**, une seule intention, dans les conventions du dépôt. Pas de contournement au
    point d'apparition qui laisserait la cause en place.
    - La cause est dans la **donnée** existante : la correction comprend une règle de données et une

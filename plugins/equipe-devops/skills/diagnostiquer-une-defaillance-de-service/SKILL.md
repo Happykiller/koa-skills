@@ -14,7 +14,7 @@ description: "DevOps — quand : un service précis arrêté, en boucle de redé
 - **Objectif / déclencheur** : trouver la cause d'un service arrêté, en boucle de redémarrage, en échec de santé, ou « sain » mais inutile.
 - **Étapes** :
   1. État de l'unité : en marche, boucle de redémarrage, en échec de santé ou arrêtée.
-  2. Extraire la **cause** des journaux (fin du journal), pas seulement le symptôme **[OBS E01]**.
+  2. Extraire la **cause** des journaux (fin du journal), pas seulement le symptôme **[OBS E01]**. Journaux volumineux ou trois lectures ou plus à la suite : délègue la **collecte** à `koa:explorateur`, et vérifie un échantillon de ses références. Le diagnostic reste à toi.
   3. Vérifier les causes silencieuses classiques :
      - permissions ou propriétaire d'un volume incompatibles avec un exécutable non privilégié privé de ses capacités. Résultat : « sain » mais n'écrit rien **[OBS E31]** ;
      - ressource manquante dans l'artefact (fichier non copié dans l'image) **[OBS E01]** ;

@@ -15,6 +15,8 @@ qui en déborde.
    est-elle vraie ? Ce qui existe déjà fait-il une partie du travail ? Distingue ce qui est confirmé de ce
    qui est supposé ; une ambiguïté qui change le résultat est une **question**, pas une hypothèse
    silencieuse.
+   - Trois lectures ou plus à la suite pour une même question : délègue-les à `koa:explorateur`, et vérifie un
+     échantillon de ses références.
 2. **Lister ce que le changement touche** : contrats publiés (API, schémas, formats), données
    existantes, clients déjà en circulation, sécurité (droits, secrets). Rien de tout cela : avance.
    Un contrat ou une donnée réelle : c'est au minimum C2, dis-le à l'orchestrateur avant d'écrire.
