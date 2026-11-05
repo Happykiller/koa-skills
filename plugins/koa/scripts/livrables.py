@@ -178,7 +178,65 @@ def tableau(entetes, lignes):
     return tete + "\n".join("| " + " | ".join(clean(v) for v in ligne) + " |" for ligne in lignes) + "\n"
 
 
-def mesures(missions, suivi, faits):
+def jetons(nombre):
+    """Assez pour comparer deux missions d'un coup d'œil ; le détail reste dans le fichier des coûts."""
+    if nombre >= 1_000_000:
+        return f"{nombre / 1_000_000:.2f} M".replace(".", ",")
+    return f"{nombre / 1_000:.1f} k".replace(".", ",")
+
+
+def valeurs(cout, cle):
+    return ", ".join(str(v) for v in cout.get(cle) or []) or PAS_MESURE
+
+
+def ligne_cout(libelle, cout):
+    return [libelle, valeurs(cout, "Modeles"), valeurs(cout, "Efforts"), str(cout.get("Tours", 0)), jetons(cout.get("CacheLu", 0)),
+            jetons(cout.get("CacheCree", 0)), jetons(cout.get("Sortie", 0))]
+
+
+def lire_couts(couts):
+    if couts is None:
+        return None
+    if not isinstance(couts, dict) or not isinstance(couts.get("Missions"), dict):
+        raise ValueError("les coûts doivent être l'objet qu'exporte KoA")
+    return couts
+
+
+def section_couts(missions, couts):
+    """Lu par KoA dans les transcripts. Ce tableau n'existe que s'il est vrai : un agent illisible se nomme, sa part n'est pas un zéro."""
+    if couts is None:
+        return "Pas mesuré : la génération n'a pas reçu les coûts, relevés par KoA à chaque actualisation.\n"
+    par_mission = couts["Missions"]
+    connues = [m["id"] for m in missions]
+    # Une mission lancée hors du registre a coûté quand même : elle se voit, et l'écart avec le plan aussi.
+    ids = connues + sorted(i for i in par_mission if i not in connues)
+    # Pas de tour attribué : un tiret, pas un zéro, car rien ne dit que la mission n'a rien coûté.
+    lignes = [ligne_cout(i, par_mission[i]) if i in par_mission else [i, *["—"] * 6] for i in ids]
+    lignes.append(ligne_cout("hors mission", couts.get("HorsMission") or {}))
+    lignes.append(ligne_cout("total", couts.get("Total") or {}))
+    note = ("\nLes totaux sont exacts. L'attribution est approchée : un tour compte pour la mission du dernier message "
+            "que son agent a envoyé ou reçu. « hors mission » : prise de poste, coordination, finalisation et clôture.\n")
+    if couts.get("NonMesures"):
+        note += f"\nTranscript non lu, ces chiffres sont donc des minimums : {clean(couts['NonMesures'])}.\n"
+    return tableau(["Mission", "Modèle", "Effort", "Tours", "Lus en cache", "Créés en cache", "Sortie"], lignes) + note
+
+
+def lignes_cout_total(couts):
+    if couts is None:
+        return [["Coût (tours, jetons, modèle, effort)", PAS_MESURE]]
+    total = couts.get("Total") or {}
+    hors = couts.get("HorsMission") or {}
+    part = round(100 * hors.get("Tours", 0) / total["Tours"]) if total.get("Tours") else 0
+    non_mesures = couts.get("NonMesures") or []
+    return [
+        ["Tours" + (" (minimum : un agent non mesuré)" if non_mesures else ""), str(total.get("Tours", 0))],
+        ["Lus en cache / créés en cache / sortie", f"{jetons(total.get('CacheLu', 0))} / {jetons(total.get('CacheCree', 0))} / {jetons(total.get('Sortie', 0))}"],
+        ["Modèle / effort", f"{valeurs(total, 'Modeles')} / {valeurs(total, 'Efforts')}"],
+        ["Part des tours hors mission", f"{part} %"],
+    ]
+
+
+def mesures(missions, suivi, faits, couts=None):
     """Ce qui se compare d'un chantier à l'autre ; sans journal, rien n'est mesuré, et c'est dit."""
     if faits is None:
         return "Pas mesuré : la génération n'a pas reçu le journal de la Cantina.\n"
@@ -192,13 +250,15 @@ def mesures(missions, suivi, faits):
         ["Blocages remontés", str(sum(len(s["blocages"]) for s in suivi.values()))],
         ["Jalons d'intégration / ayant trouvé un défaut", f"{len(jalons)} / {defauts}"],
         ["Du premier départ à la dernière acceptation", duree(min(debuts), max(fins)) if debuts and fins else PAS_MESURE],
+        *lignes_cout_total(couts),
     ]
     return tableau(["Mesure", "Valeur"], lignes)
 
 
-def render(data, evenements=None):
+def render(data, evenements=None, couts=None):
     data = lire_registre(data)
     faits = lire_evenements(evenements) if evenements is not None else None
+    couts = lire_couts(couts)
     missions = data["missions"]
     suivi = suivre(missions, faits or [])
     borne = max((f["quand"] for f in faits), default=None) if faits else None
@@ -232,6 +292,7 @@ def render(data, evenements=None):
                                         [[f.get("name"), f.get("branch"), f.get("finalize")] for f in data["features"]]) +
             "\n## Missions\n\n" + tableau(["Id", "Vague", "Feature", "Pour", "Dépend de", "Relu par", "Criticité", "État",
                                            "Début", "Fin", "Durée"], [ligne_plan(m) for m in missions]) +
+            "\n## Coût par mission\n\n" + section_couts(missions, couts) +
             "\n## Fini quand, par mission\n\n" + (criteres or "Aucune mission.\n") +
             "\n## Gantt\n\n" + (gantt(missions, suivi, borne) if faits else "Pas mesuré : aucun fait de la Cantina reçu.\n") +
             "\n## Risques\n\n" + tableau(["Risque", "Ce qui le montrerait", "État"],
@@ -253,7 +314,7 @@ def render(data, evenements=None):
                                            [[i, str(s["refus"]), str(len(s["blocages"]))] for i, s in suivi.items()
                                             if s["refus"] or s["blocages"]]) if journal else "Pas mesuré.\n") +
              "\n## Pas vérifié\n\n" + tableau(["Mission", "Pas vérifié"], [[m["id"], m.get("unverified")] for m in missions]) +
-             "\n## Mesures\n\n" + mesures(missions, suivi, faits))
+             "\n## Mesures\n\n" + mesures(missions, suivi, faits, couts))
 
     retenues = [o for o in data["observations"] if not o.get("duplicate_of")]
     doublons = [o for o in data["observations"] if o.get("duplicate_of")]
@@ -262,7 +323,7 @@ def render(data, evenements=None):
                                            [[o.get("id"), o.get("fact"), o.get("evidence"), o.get("cause"), o.get("cost"),
                                              o.get("scope"), o.get("action")] for o in retenues]) +
            "\n## Doublons écartés\n\n" + tableau(["Id", "Doublon de"], [[o.get("id"), o["duplicate_of"]] for o in doublons]) +
-           "\n## Mesures du chantier\n\n" + mesures(missions, suivi, faits))
+           "\n## Mesures du chantier\n\n" + mesures(missions, suivi, faits, couts))
 
     # La note de livraison se lit sans savoir ce qu'est un SHA : seule la déclaration « delivered », posée après la
     # livraison effective, fait passer une capacité dans « disponible ».
@@ -284,11 +345,13 @@ def main(argv=None):
     p.add_argument("registry", type=Path, help="chantier.json, le registre de l'orchestrateur au QG")
     p.add_argument("--output", required=True, type=Path, help="le dossier des quatre vues")
     p.add_argument("--evenements", type=Path, help="les faits de la Cantina exportés par KoA (chantier_actualiser)")
+    p.add_argument("--couts", type=Path, help="le coût par mission relevé par KoA dans les transcripts (chantier_actualiser)")
     a = p.parse_args(argv)
     try:
         data = json.loads(a.registry.read_text(encoding="utf-8"))
         evenements = json.loads(a.evenements.read_text(encoding="utf-8")) if a.evenements else None
-        documents = render(data, evenements)
+        couts = json.loads(a.couts.read_text(encoding="utf-8")) if a.couts else None
+        documents = render(data, evenements, couts)
         a.output.mkdir(parents=True, exist_ok=True)
         for nom, contenu in documents.items():
             with (a.output / nom).open("w", encoding="utf-8", newline="\n") as fichier:

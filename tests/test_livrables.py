@@ -37,6 +37,22 @@ JOURNAL = [
 ]
 
 
+# Le format exact que sérialise KoA (CoutsChantier.Resultat).
+COUTS = {
+    "Missions": {
+        "L1": {"Tours": 5, "Entree": 10, "CacheLu": 170_000, "CacheCree": 7_500, "Sortie": 3_800,
+               "Modeles": ["claude-haiku-5-5"], "Efforts": ["medium"]},
+        "M1": {"Tours": 15, "Entree": 30, "CacheLu": 1_230_000, "CacheCree": 12_500, "Sortie": 6_200,
+               "Modeles": ["claude-sonnet-5-5"], "Efforts": ["medium", "high"]},
+    },
+    "HorsMission": {"Tours": 40, "Entree": 80, "CacheLu": 5_000_000, "CacheCree": 90_000, "Sortie": 30_000,
+                    "Modeles": ["claude-sonnet-5-5"], "Efforts": ["medium"]},
+    "Total": {"Tours": 60, "Entree": 120, "CacheLu": 6_400_000, "CacheCree": 110_000, "Sortie": 40_000,
+              "Modeles": ["claude-haiku-5-5", "claude-sonnet-5-5"], "Efforts": ["medium", "high"]},
+    "NonMesures": [],
+}
+
+
 class Livrables(unittest.TestCase):
     def setUp(self):
         self.registre = json.loads(MODELE.read_text(encoding="utf-8"))
@@ -109,14 +125,55 @@ class Livrables(unittest.TestCase):
         with self.assertRaises(ValueError):
             render(self.registre, [{"MessageId": 1, "Quand": "hier"}])
 
+    def test_chaque_mission_dit_son_modele_son_effort_ses_tours_et_ses_jetons(self):
+        plan = render(self.registre, JOURNAL, COUTS)["plan.md"]
+        self.assertIn("## Coût par mission", plan)
+        self.assertIn("| M1 | claude-sonnet-5-5 | medium, high | 15 | 1,23 M | 12,5 k | 6,2 k |", plan)
+        self.assertIn("| hors mission | claude-sonnet-5-5 | medium | 40 | 5,00 M | 90,0 k | 30,0 k |", plan)
+        self.assertIn("| total | claude-haiku-5-5, claude-sonnet-5-5 | medium, high | 60 | 6,40 M | 110,0 k | 40,0 k |", plan)
+        self.assertIn("L'attribution est approchée", plan)
+
+    def test_une_mission_sans_tour_attribue_n_est_pas_a_zero(self):
+        self.assertRegex(render(self.registre, JOURNAL, COUTS)["plan.md"], r"\| M2 \| — \| — \| — \| — \| — \| — \|")
+
+    def test_une_mission_hors_du_registre_a_coute_quand_meme(self):
+        self.assertIn("| L1 | claude-haiku-5-5 |", render(self.registre, JOURNAL, COUTS)["plan.md"])
+
+    def test_un_agent_non_mesure_se_nomme_et_les_chiffres_sont_des_minimums(self):
+        couts = dict(COUTS, NonMesures=["cluster-a-qa"])
+        rendu = render(self.registre, JOURNAL, couts)
+        self.assertIn("Transcript non lu, ces chiffres sont donc des minimums : cluster-a-qa", rendu["plan.md"])
+        self.assertIn("Tours (minimum : un agent non mesuré)", rendu["bilan.md"])
+
+    def test_le_bilan_et_le_rex_portent_le_total(self):
+        rendu = render(self.registre, JOURNAL, COUTS)
+        for vue in ("bilan.md", "rex.md"):
+            self.assertIn("| Lus en cache / créés en cache / sortie | 6,40 M / 110,0 k / 40,0 k |", rendu[vue])
+            self.assertIn("| Part des tours hors mission | 67 % |", rendu[vue])
+
+    def test_sans_couts_rien_ne_s_invente(self):
+        rendu = render(self.registre, JOURNAL)
+        self.assertIn("Pas mesuré : la génération n'a pas reçu les coûts", rendu["plan.md"])
+        self.assertIn("| Coût (tours, jetons, modèle, effort) | pas mesuré |", rendu["bilan.md"])
+
+    def test_des_couts_illisibles_sont_refuses(self):
+        with self.assertRaises(ValueError):
+            render(self.registre, JOURNAL, {"Missions": []})
+
+    def test_memes_entrees_memes_octets_avec_les_couts(self):
+        self.assertEqual(render(self.registre, JOURNAL, COUTS), render(copy.deepcopy(self.registre), JOURNAL, copy.deepcopy(COUTS)))
+
     def test_la_ligne_de_commande_ecrit_les_quatre_vues_ou_sort_en_2(self):
         with tempfile.TemporaryDirectory() as d:
             journal = Path(d) / "evenements.json"
             journal.write_text(json.dumps(JOURNAL), encoding="utf-8")
-            ok = subprocess.run([sys.executable, str(SCRIPT), str(MODELE), "--output", d, "--evenements", str(journal)],
+            couts = Path(d) / "couts.json"
+            couts.write_text(json.dumps(COUTS), encoding="utf-8")
+            ok = subprocess.run([sys.executable, str(SCRIPT), str(MODELE), "--output", d, "--evenements", str(journal), "--couts", str(couts)],
                                 capture_output=True, text=True)
             self.assertEqual(ok.returncode, 0, ok.stdout + ok.stderr)
             self.assertTrue(all((Path(d) / n).is_file() for n in ("plan.md", "bilan.md", "rex.md", "livraison.md")))
+            self.assertIn("| M1 | claude-sonnet-5-5 |", (Path(d) / "plan.md").read_text(encoding="utf-8"))
             casse = Path(d) / "casse.json"
             casse.write_text("{}", encoding="utf-8")
             ko = subprocess.run([sys.executable, str(SCRIPT), str(casse), "--output", d], capture_output=True, text=True)

@@ -27,9 +27,10 @@ décisions, les observations, les capacités. Tu n'y écris **ni heure ni état*
 **Actualiser** = `chantier_actualiser` (`table`, `chantier`, `generateur` : `${CLAUDE_PLUGIN_ROOT}/scripts/livrables.py`).
 KoA y joint les faits de la Cantina et écrit sous `docs/chantiers/<chantier>/genere/` : `plan.md` (missions, états,
 heures, Gantt, blocages), `bilan.md` (pour le pilote), `rex.md` (amélioration continue) et `livraison.md` (pour les
-autres métiers). Il ne rend que les chemins : ne relis pas les vues pour les recopier, cite-les. Sans cet outil,
-`python3 "${CLAUDE_PLUGIN_ROOT}/scripts/livrables.py" <chantier.json> --output <dossier>/genere` rend les mêmes vues,
-heures « pas mesuré », états tirés d'un champ `state` que tu tiens alors toi-même.
+autres métiers). Il y joint aussi le **coût par mission** (modèle, effort, tours, jetons), qu'il lit dans les transcripts :
+ne le compte pas, ne le recopie pas, il ne te coûte rien. Il ne rend que les chemins : ne relis pas les vues pour les recopier,
+cite-les. Sans cet outil, `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/livrables.py" <chantier.json> --output <dossier>/genere` rend
+les mêmes vues, heures et coûts « pas mesuré », états tirés d'un champ `state` que tu tiens alors toi-même.
 
 Actualise **aux jalons**, jamais à chaque message : plan soumis, vague close, finalisation, livraison, clôture. Ne
 retouche pas une vue à la main : la suivante l'écraserait — corrige le registre. Commite le registre et `genere/`.
