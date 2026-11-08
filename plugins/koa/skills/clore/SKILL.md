@@ -1,6 +1,6 @@
 ---
 name: clore
-description: "Fin de session d'un agent de cluster KoA : capitaliser, committer, pousser, arrêter, vérifier, puis dire sa CLÔTURE à la table. Proportionnée à la session. Par /koa:clore, sur un CLORE, ou quand ta mission est close. Hors cluster : /cloture."
+description: "Fin de session d'un agent de cluster KoA : capitaliser (connaissance et outillage), committer, pousser, arrêter, vérifier, puis dire sa CLÔTURE à la table. Proportionnée. Par /koa:clore, sur un CLORE, ou mission close. Hors cluster : /cloture."
 ---
 
 # Clore la session
@@ -45,7 +45,7 @@ Tu enchaînes sans demander de validation. Tu t'arrêtes, exposes et attends si 
 - un dépôt **reste sale** après commit, ou est en rebase, merge ou cherry-pick ;
 - les **tests du dépôt échouent** sur ce que tu t'apprêtes à committer.
 
-**La clôture se proportionne à la session.** Rien de modifié ni de non poussé, rien appris, aucun compose
+**La clôture se proportionne à la session.** Rien de modifié ni de non poussé, rien appris, rien refait, aucun compose
 qui tourne : le recensement suffit, et le rapport tient en une ligne. Le QG n'entre au périmètre que si
 la capitalisation y a **écrit** : sans écriture, pas de branche `capitalisation/…`, pas de PR, rien à
 fusionner pour l'orchestrateur. Une étape sans objet se dit en un mot et se saute.
@@ -75,8 +75,9 @@ capitalisation y écrit.
 
 ## 2. Capitaliser
 
-`/koa:capitaliser`, en autonomie : ce qui passe ses filtres est écrit ou proposé ; une contradiction est
-un arrêt. S'il n'est pas disponible, dis-le et poursuis sans ce volet.
+`/koa:capitaliser`, en autonomie, **ses deux volets** : la connaissance (ce qui passe ses filtres est écrit ou
+proposé) et l'outillage (ce que la session a refait, compté au `MOTEUR.md` du QG, outillé à trois occurrences ;
+ce qui a trompé, corrigé). Une contradiction est un arrêt. S'il n'est pas disponible, dis-le et poursuis sans ce volet.
 
 ## 3. Committer, dépôt par dépôt
 
@@ -140,6 +141,7 @@ Il sort en erreur si un dépôt reste sale ou décalé de son amont : c'est un a
 ```
 ## Clôture — <rôle>, cluster <cluster>
 Capitalisation : 1 page au dépôt, 1 consigne au QG, 1 issue rédigée à ouvrir (<lien prérempli>) — ou « rien ».
+Outillage : 1 script créé (où), 1 candidat à 2/3 noté au QG, 1 hook corrigé — ou « rien de répété ».
 Tests : <dépôt> « <dernière ligne de la sortie> », par dépôt dont le code a changé.
 | Dépôt | Commits | Push | État final |
 QG : PR <lien>, à relire par un autre rôle — ou branche capitalisation/<rôle>-…, à fusionner par l'orchestrateur.
@@ -157,12 +159,14 @@ consigné sans destinataire si personne ne l'a demandé :
 ```
 CLÔTURE — <rôle>
 Capitalisation : <écrit, où ; proposé, où> — ou « rien »
+Outillage : <créé ou corrigé, où ; candidats et leur compte n/3> — ou « rien de répété »
 Poussé : <dépôts ; branche capitalisation/… à fusionner> — ou « rien »
 Non refermé : <ce qui tourne ou reste sale> — ou « rien »
 ```
 
 **KoA ne ferme pas un agent sans elle** : c'est ce message, et lui seul, qui dit à `agent_fermer` que ta session peut
-se fermer sans rien perdre. « Capitalisation : rien » est une clôture ; un silence n'en est pas une. Une `MISSION`
+se fermer sans rien perdre. « Capitalisation : rien » est une clôture ; un silence n'en est pas une. De même
+« Outillage : rien de répété » : une ligne absente dit que le geste répété n'a pas été cherché. Une `MISSION`
 reçue après la rend caduque : la nouvelle mission finie, tu clos de nouveau. `sans-capi` et `sans-push` postent la
 leur aussi, en disant ce qu'ils ont sauté.
 
