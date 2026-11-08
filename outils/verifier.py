@@ -34,8 +34,9 @@ BUDGET_DESCRIPTION = 260
 BUDGET_TOTAL = 6000
 DECLENCHEUR = re.compile(r"\bquand\b|\bpar /|\bà déclencher\b", re.I)
 
-# L'adresse d'installation d'un plugin a la forme d'une adresse électronique sans en être une.
-FAUX_POSITIFS = re.compile(r"^[a-z0-9-]+@koa-skills$")
+# L'adresse d'installation d'un plugin a la forme d'une adresse électronique sans en être une, comme un paquet
+# épinglé par un CDN (`mermaid@11.4.1`, page de suivi) : aucun domaine de messagerie n'est fait de trois nombres.
+FAUX_POSITIFS = re.compile(r"^[a-z0-9-]+@(koa-skills|\d+\.\d+\.\d+)$")
 
 # Un épinglage de la marketplace écrit dans le dépôt est recopié tel quel : le modèle de monter-le-qg
 # l'est dans chaque QG neuf, le README par qui l'installe. Le modèle visait encore la v0.4.0 à la

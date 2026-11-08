@@ -23,6 +23,10 @@ class MotifsDeFuite(unittest.TestCase):
     def test_l_adresse_d_un_plugin_n_est_pas_une_fuite(self):
         self.assertEqual(self.attrape("claude plugin install garde-fous@koa-skills"), [])
 
+    def test_un_paquet_epingle_n_est_pas_une_fuite_mais_une_adresse_l_est_toujours(self):
+        self.assertEqual(self.attrape("https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs"), [])
+        self.assertIn("adresse électronique", self.attrape("écrire à alice@exemple.fr ou bob@11.4.fr"))
+
     def test_une_description_dit_quand_se_declencher(self):
         self.assertTrue(verifier.DECLENCHEUR.search("DevOps — quand : un service arrêté."))
         self.assertTrue(verifier.DECLENCHEUR.search("Rituel de fin de session. Par /koa:clore."))

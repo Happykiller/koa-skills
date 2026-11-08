@@ -17,25 +17,34 @@ Tu **coordonnes, tu n'exécutes pas** : aucune ligne de code, aucun test, aucune
 | `/koa:mener-un-chantier finaliser <feature>` | « finalise … » : l'étape 7 |
 | `/koa:mener-un-chantier livrer` | « livre » : l'étape 8 |
 
-## Le registre et les quatre vues
+## Le registre, les quatre vues et la page de suivi
 
 Le chantier tient dans **une source** : `docs/chantiers/<chantier>/chantier.json`, au format de
 `${CLAUDE_PLUGIN_ROOT}/skills/mener-un-chantier/chantier.modele.json` — le plan, les « Fini quand », les risques, les
-décisions, les observations, les capacités. Tu n'y écris **ni heure ni état** : qui a reçu sa mission et quand, quelle
+décisions, les observations, les capacités, le titre de chaque vague (`waves`) et la **durée prévue de chaque mission**
+(`estimate_min`, le « Prévu » de sa fiche). Tu n'y écris **ni heure ni état** : qui a reçu sa mission et quand, quelle
 `REVUE` a conclu quoi sur quel SHA, quel `BLOCAGE`, KoA les tient dans le journal de la table.
 
 **Actualiser** = `chantier_actualiser` (`table`, `chantier`, `generateur` : `${CLAUDE_PLUGIN_ROOT}/scripts/livrables.py`).
 KoA y joint les faits de la Cantina et écrit sous `docs/chantiers/<chantier>/genere/` : `plan.md` (missions, états,
-heures, Gantt, blocages), `bilan.md` (pour le pilote), `rex.md` (amélioration continue) et `livraison.md` (pour les
-autres métiers). Il y joint aussi le **coût par mission** (modèle, effort, tours, jetons), qu'il lit dans les transcripts :
-ne le compte pas, ne le recopie pas, il ne te coûte rien. Il ne rend que les chemins : ne relis pas les vues pour les recopier,
-cite-les. Sans cet outil, `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/livrables.py" <chantier.json> --output <dossier>/genere` rend
-les mêmes vues, heures et coûts « pas mesuré », états tirés d'un champ `state` que tu tiens alors toi-même.
+heures, Gantt, blocages), `bilan.md` (pour le pilote), `rex.md` (amélioration continue), `livraison.md` (pour les
+autres métiers) et **`suivi.html`, la page de suivi de l'humain**. Il y joint aussi le **coût par mission** (modèle,
+effort, tours, jetons), qu'il lit dans les transcripts : ne le compte pas, ne le recopie pas, il ne te coûte rien. Il ne
+rend que les chemins : ne relis pas les vues pour les recopier, cite-les. Sans cet outil,
+`python3 "${CLAUDE_PLUGIN_ROOT}/scripts/livrables.py" <chantier.json> --output <dossier>/genere` rend les mêmes vues,
+heures et coûts « pas mesuré », états tirés d'un champ `state` que tu tiens alors toi-même.
 
-Actualise **aux jalons**, jamais à chaque message : plan soumis, vague close, finalisation, livraison, clôture. Ne
-retouche pas une vue à la main : la suivante l'écraserait — corrige le registre. Passe `committer: true` : KoA committe le
-registre et `genere/`, sans tour de plus, et ne pousse pas. Pousse avec ton prochain envoi de fiches, au plus tard à la
-clôture ; une réponse sans `commit` veut dire que c'est à toi de committer.
+**La page de suivi se publie telle quelle, elle ne se refait pas.** `genere/suivi.html` porte la forme que l'humain a
+validée : l'heure de mise à jour et le temps écoulé tout en haut, l'avancement, le Gantt du plan entier, la durée réelle
+en couleur face au prévu, le coût par mission. Publie-la en artefact (même URL à chaque fois), sans la réécrire ni la
+retoucher : chaque page refaite par un chantier a perdu un réglage obtenu au précédent. Une forme à changer se demande
+dans koa-skills, pas dans un outil du QG.
+
+Actualise **à chaque fusion d'une mission**, à chaque vague lancée, et aux jalons : plan soumis, finalisation,
+livraison, clôture. Les états ne bougent qu'à l'actualisation : entre deux, la page montre un état figé, et son
+indicateur le dit. Ne retouche pas une vue à la main : la suivante l'écraserait — corrige le registre. Passe
+`committer: true` : KoA committe le registre et `genere/`, sans tour de plus, et ne pousse pas. Pousse avec ton
+prochain envoi de fiches, au plus tard à la clôture ; une réponse sans `commit` veut dire que c'est à toi de committer.
 
 ## 1. Ouvrir le dossier
 
@@ -83,7 +92,8 @@ en même temps. Rien ne part avant sa réponse.
 ## 5. Les missions
 
 Pour chaque mission de la vague : sa fiche `missions/M<n>.md`, **SMART** — un résultat, des « Fini quand » mesurables
-et numérotés, atteignable par son seul exécutant, des « Contraintes », un « Prévu » —, commitée ; un message
+et numérotés, atteignable par son seul exécutant, des « Contraintes », un « Prévu » — reporté en `estimate_min` au
+registre, faute de quoi ni l'avancement ni la couleur des durées ne se lisent —, commitée ; un message
 `MISSION M<n>` qui en donne l'adresse au SHA, envoyé **à l'exécutant et à ses relecteurs ensemble**. La fiche dit à qui répondre : le `RÉSULTAT` aux relecteurs
 qu'elle nomme, **pas à toi** tant qu'il y en a un, et à toi `BLOCAGE` et `QUESTION`. Te mettre en copie te réveille pour
 un message sur lequel tu n'as rien à faire. Les missions d'une vague partent ensemble. Un secret se cite par son identifiant au coffre (`coffre_lister`), jamais par sa valeur.
@@ -93,7 +103,9 @@ L'heure de départ est celle du message : ne la note pas.
 
 `cantina_attendre`, sans adresse : il rend le courrier. Une mission qui dépasse son « Prévu » de moitié sans nouvelle
 est une dérive : fais le point avec l'exécutant — recadrer, découper ou replanifier. Le `RÉSULTAT` va aux relecteurs de la
-fiche, et c'est la `REVUE` qui te réveille et qui prouve ; une fiche sans relecteur te l'adresse. À chaque `REVUE` acceptée, **contrôle sans rejouer** : chaque « Fini quand » y porte sa
+fiche, et c'est la `REVUE` qui te réveille et qui prouve ; une fiche sans relecteur te l'adresse, et **la `REVUE` est alors
+la tienne** : consigne-la dès ton contrôle (`cantina_dire`, `REVUE M<n> — ACCEPTÉ, sur <SHA>`), car c'est elle qui clôt la
+mission au journal — oubliée, la mission court au suivi et sa durée gonfle jusqu'à ce que tu y penses. À chaque `REVUE` acceptée, **contrôle sans rejouer** : chaque « Fini quand » y porte sa
 commande et son verdict, sur le SHA complet que tu vas fusionner — un critère que la CI requise a vérifié sur ce SHA
 est prouvé aussi. Tu ne rejoues toi-même que ce qui manque, se contredit, porte sur une autre tête ou un autre
 environnement, ou touche un risque critique ; à partir de C2, au moins une preuve par Owner. Une preuve vaut pour sa
