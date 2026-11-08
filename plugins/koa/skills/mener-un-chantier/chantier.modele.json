@@ -3,19 +3,20 @@
   "result": "une API authentifiée et son front, déployés en recette",
   "done_when": "un utilisateur de recette se connecte et voit son tableau de bord",
   "out_of_scope": "la facturation",
+  "waves": { "1": "le socle, en parallèle", "2": "la rencontre" },
   "team": ["tech ×2 : @cluster-a-tech, @cluster-a-tech-2", "devops : @cluster-a-devops"],
   "features": [
     { "name": "socle", "branch": "feature/socle", "finalize": "TECH : suite complète ; QA : parcours de connexion" }
   ],
   "missions": [
     { "id": "M1", "wave": 1, "feature": "socle", "owner": "@cluster-a-tech", "depends_on": [],
-      "reviewers": ["@cluster-a-tech-2"], "criticality": "C1", "result": "l'API d'authentification",
+      "reviewers": ["@cluster-a-tech-2"], "criticality": "C1", "estimate_min": 45, "result": "l'API d'authentification",
       "criteria": ["1. POST /session rend un jeton", "2. tests touchés verts"], "unverified": "rien" },
     { "id": "M2", "wave": 1, "feature": "socle", "owner": "@cluster-a-tech-2", "depends_on": [],
-      "reviewers": ["@cluster-a-tech"], "criticality": "C1", "result": "l'écran de connexion",
+      "reviewers": ["@cluster-a-tech"], "criticality": "C1", "estimate_min": 30, "result": "l'écran de connexion",
       "criteria": ["1. le formulaire appelle POST /session"], "unverified": "" },
     { "id": "I1", "wave": 2, "feature": "socle", "owner": "@cluster-a-tech-2", "depends_on": ["M1", "M2"],
-      "reviewers": ["@cluster-a-tech"], "criticality": "C1", "result": "le front parle à l'API réelle",
+      "reviewers": ["@cluster-a-tech"], "criticality": "C1", "estimate_min": 20, "result": "le front parle à l'API réelle",
       "criteria": ["1. le test de contrat front/API passe sur la tête de feature/socle"], "unverified": "" }
   ],
   "risks": [

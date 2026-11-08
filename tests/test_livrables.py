@@ -58,11 +58,12 @@ class Livrables(unittest.TestCase):
         self.registre = json.loads(MODELE.read_text(encoding="utf-8"))
 
     def test_le_modele_livre_avec_la_skill_se_genere(self):
-        self.assertEqual(set(render(self.registre)), {"plan.md", "bilan.md", "rex.md", "livraison.md"})
+        self.assertEqual(set(render(self.registre)), {"plan.md", "bilan.md", "rex.md", "livraison.md", "suivi.html"})
 
     def test_les_heures_et_les_etats_viennent_du_journal(self):
         plan = render(self.registre, JOURNAL)["plan.md"]
-        self.assertIn("| M1 | 1 | socle | @cluster-a-tech | — | @cluster-a-tech-2 | C1 | acceptée | 01/11 10:05 | 01/11 10:40 | 0 h 35 |", plan)
+        self.assertIn("| M1 | 1 | socle | @cluster-a-tech | — | @cluster-a-tech-2 | C1 | acceptée | 45 min | 01/11 10:05 | 01/11 10:40 | 0 h 35 |", plan)
+        self.assertIn("**État au** : 01/11 11:12, dernier fait reçu de la Cantina", plan)
         self.assertIn("| I1 | 2 |", plan)
         self.assertIn("| en reprise |", plan)
         self.assertIn("M1 :done, M1, 2026-11-01T10:05, 2026-11-01T10:40", plan)
@@ -80,7 +81,7 @@ class Livrables(unittest.TestCase):
 
     def test_une_revue_plus_recente_qui_refuse_annule_l_acceptation(self):
         journal = JOURNAL + [fait(11, "REVUE", "M1", "cluster-a-tech-2", "REVUE M1 — REFUSÉ, sur " + "c" * 40, "2026-11-01T11:20:00")]
-        self.assertIn("| M1 | 1 | socle | @cluster-a-tech | — | @cluster-a-tech-2 | C1 | en reprise |",
+        self.assertIn("| M1 | 1 | socle | @cluster-a-tech | — | @cluster-a-tech-2 | C1 | en reprise | 45 min |",
                       render(self.registre, journal)["plan.md"])
 
     def test_sans_journal_rien_n_est_mesure_et_c_est_dit(self):
@@ -172,13 +173,75 @@ class Livrables(unittest.TestCase):
             ok = subprocess.run([sys.executable, str(SCRIPT), str(MODELE), "--output", d, "--evenements", str(journal), "--couts", str(couts)],
                                 capture_output=True, text=True)
             self.assertEqual(ok.returncode, 0, ok.stdout + ok.stderr)
-            self.assertTrue(all((Path(d) / n).is_file() for n in ("plan.md", "bilan.md", "rex.md", "livraison.md")))
+            self.assertTrue(all((Path(d) / n).is_file() for n in ("plan.md", "bilan.md", "rex.md", "livraison.md", "suivi.html")))
             self.assertIn("| M1 | claude-sonnet-5-5 |", (Path(d) / "plan.md").read_text(encoding="utf-8"))
             casse = Path(d) / "casse.json"
             casse.write_text("{}", encoding="utf-8")
             ko = subprocess.run([sys.executable, str(SCRIPT), str(casse), "--output", d], capture_output=True, text=True)
             self.assertEqual(ko.returncode, 2)
             self.assertIn("erreur", json.loads(ko.stdout))
+
+
+class PageDeSuivi(unittest.TestCase):
+    """La forme que l'humain a validée, figée : un chantier qui réécrivait sa page la perdait (épic 210 de KoA)."""
+
+    def setUp(self):
+        self.registre = json.loads(MODELE.read_text(encoding="utf-8"))
+        # Une mission que personne n'a encore reçue : le plan entier doit se voir, pas seulement ce qui est parti.
+        self.registre["missions"].append({"id": "M3", "wave": 3, "feature": "socle", "owner": "@cluster-a-tech",
+                                          "depends_on": ["I1"], "estimate_min": 50, "result": "le tableau de bord"})
+        self.page = render(self.registre, JOURNAL, COUTS)["suivi.html"]
+
+    def test_la_duree_reelle_se_lit_seule_en_couleur_jamais_en_ecart(self):
+        # « 24 min prévu et 36 min d'avance » ne se lisait pas : l'humain a demandé le temps mesuré en couleur, sans la différence.
+        for ecart in ("que prévu", "d'avance", "de retard", "à l'heure", "comme prévu"):
+            self.assertNotIn(ecart, self.page)
+        self.assertIn('<b class="duree ok">35 min</b>', self.page)   # M1 : 35 min pour 45 prévues
+        self.assertIn('<b class="duree hot">45 min</b>', self.page)  # M2 : 45 min pour 30 prévues
+
+    def test_une_mission_en_cours_se_mesure_au_dernier_fait(self):
+        # I1 : partie à 10:55, dernier fait à 11:12 ; 17 min pour 20 prévues.
+        self.assertIn('<b class="duree ok">17 min</b><div class="note">en cours</div>', self.page)
+
+    def test_le_cout_par_mission_est_toujours_la(self):
+        self.assertIn("<h2>Coût par mission</h2>", self.page)
+        self.assertIn('<td class="mono">M1</td><td class="num">claude-sonnet-5-5</td>', self.page)
+        self.assertIn('<tr class="total"><td class="mono">total</td>', self.page)
+        sans = render(self.registre, JOURNAL)["suivi.html"]
+        self.assertIn("<h2>Coût par mission</h2>", sans)
+        self.assertIn("Pas mesuré : la génération n'a pas reçu les coûts", sans)
+
+    def test_le_gantt_montre_le_plan_entier(self):
+        self.assertIn("M3 le tableau de bord :M3, after I1, 50m", self.page)
+        self.assertIn("section la rencontre", self.page)
+        self.assertIn("    M3 :M3, after I1, 50m", render(self.registre, JOURNAL)["plan.md"])
+        self.assertIn("M1 l&#x27;API d&#x27;authentification :done, M1, 2026-11-01T10:05, 2026-11-01T10:40", self.page)
+
+    def test_l_avancement_se_lit_en_tete(self):
+        # 45 + 30 prévues faites, sur 45 + 30 + 20 + 50.
+        self.assertIn("<span>Avancement</span><b>52 %</b>", self.page)
+        self.assertIn("pondéré par les durées prévues", self.page)
+        self.assertIn("<span>Faites</span><b>2</b><small>sur 4</small>", self.page)
+
+    def test_l_heure_de_mise_a_jour_et_le_temps_depuis_viennent_tout_en_haut(self):
+        self.assertLess(self.page.index('<div class="page">'), self.page.index('class="fraicheur"'))
+        self.assertLess(self.page.index('class="fraicheur"'), self.page.index("<header>"))
+        self.assertIn('data-maj="2026-11-01T11:12"><span><b>Mise à jour</b> : 01/11 11:12', self.page)
+        self.assertIn('data-depuis="2026-11-01T11:12" data-prefixe="· il y a "', self.page)
+        self.assertIn("<b>Chantier parti</b> : 01/11 10:05", self.page)
+        self.assertIn("pas mesurée, aucun fait de la Cantina reçu", render(self.registre)["suivi.html"])
+
+    def test_memes_entrees_memes_octets(self):
+        # Aucune heure de génération : « il y a … » se calcule à l'affichage.
+        self.assertEqual(self.page, render(copy.deepcopy(self.registre), copy.deepcopy(JOURNAL), copy.deepcopy(COUTS))["suivi.html"])
+
+    def test_le_registre_ne_s_injecte_pas_dans_la_page(self):
+        registre = copy.deepcopy(self.registre)
+        registre["name"] = "<script>alert(1)</script>"
+        registre["missions"][0]["result"] = '"><img src=x onerror=alert(1)>'
+        page = render(registre, JOURNAL, COUTS)["suivi.html"]
+        self.assertNotIn("<script>alert", page)
+        self.assertNotIn("<img src=x", page)
 
 
 if __name__ == "__main__":
