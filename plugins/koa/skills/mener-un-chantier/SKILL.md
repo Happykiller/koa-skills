@@ -112,7 +112,11 @@ environnement, ou touche un risque critique ; à partir de C2, au moins une preu
 tête : un commit de plus l'invalide, et le critère se rejoue ou passe en « Pas vérifié » (`unverified`). Puis fusionne
 (`gh pr merge … --match-head-commit … --squash`) dans la branche de la feature — **`--merge` si la PR porte une
 fusion** (`git log --merges <base>..<tête>`) ou un SHA épinglé ailleurs (workflow, action) : le squash coupe
-l'ascendance, la fusion suivante rejoue les conflits déjà résolus, et l'épingle devient injoignable. Une vague close
+l'ascendance, la fusion suivante rejoue les conflits déjà résolus, et l'épingle devient injoignable. La CI d'une PR
+s'attend en arrière-plan par `gh pr checks <n> --watch`, jamais par une boucle de `sleep`. **Fusionnée, réponds à qui
+l'attendait** : chaque `BLOCAGE` qui nomme cette mission reçoit, dans le même tour, `RÉPONSE M<k> — M<n> fusionnée dans
+<base>, <SHA de fusion>`, et la dépendance qu'il révélait entre au `depends_on` de la mission qui attendait — sans
+cette réponse, l'exécutant attend une fusion déjà faite. Une vague close
 lance la suivante, et s'actualise. **Un plan validé n'est pas un ordre de finaliser** : la dernière vague close, demande-le
 à l'humain en un message, avec les preuves, sauf si sa demande ou sa validation le dit déjà. Un défaut non bloquant va au « Suivi » (`follow_up`) ; un changement de périmètre est un **avenant**.
 
