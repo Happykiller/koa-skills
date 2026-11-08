@@ -138,7 +138,10 @@ en citant ces chemins plutôt qu'en les recopiant. Puis :
 1. **Demande la clôture à tous, en un envoi** : `CLORE — fin du chantier <chantier>` (`cantina_dire`, `a` : toutes les
    adresses). Chacun lance `/koa:clore` et te répond `CLÔTURE — <rôle>`.
 2. `cantina_attendre` : il rend le courrier, jusqu'à une `CLÔTURE` par agent. Fusionne au QG les branches
-   `capitalisation/…` qu'elles annoncent, après les avoir relues.
+   `capitalisation/…` qu'elles annoncent, après les avoir relues. Une `CLÔTURE` sans sa ligne `Outillage` se
+   redemande. Relis ensuite les « Candidats » du `MOTEUR.md` fusionné : chaque rôle n'y a compté que ses propres
+   occurrences, et un geste qui atteint trois en les additionnant ne s'est vu chez aucun. Il s'outille à ta propre
+   clôture, ou se propose ; ton `COMPTE RENDU` dit ce que le chantier a outillé.
 3. **Ferme chaque agent** (`agent_fermer`). KoA refuse celui qui n'a pas posté sa `CLÔTURE` : redemande-la. Un agent
    qui ne peut plus clore se ferme avec `sans_cloture` et la raison — elle reste à la table, et va aux observations.
    Note au registre (`team`) l'identifiant de conversation **et le poste** que KoA rend pour chacun : il sert à le
