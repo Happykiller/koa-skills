@@ -39,7 +39,7 @@ Tu enchaînes sans demander de validation. Tu t'arrêtes, exposes et attends si 
   coffre du cluster (`coffre_ecrire`, `depuis_fichier`) ;
 - un fichier modifié **n'a aucun rapport** avec la session ;
 - un acquis **contredit** une page existante, au QG surtout — une loi d'équipe ne se réécrit pas en clôture ;
-- un **push est rejeté**, ou la forge du QG prend des PR et refuse celle que tu ouvres ;
+- un **push est rejeté** ;
 - une **synchro de données** échoue ou signale un conflit ;
 - un **conteneur** tourne sans appartenir à un compose d'un dépôt du périmètre ;
 - un dépôt **reste sale** après commit, ou est en rebase, merge ou cherry-pick ;
@@ -47,17 +47,17 @@ Tu enchaînes sans demander de validation. Tu t'arrêtes, exposes et attends si 
 
 **La clôture se proportionne à la session.** Rien de modifié ni de non poussé, rien appris, rien refait, aucun compose
 qui tourne : le recensement suffit, et le rapport tient en une ligne. Le QG n'entre au périmètre que si
-la capitalisation y a **écrit** : sans écriture, pas de branche `capitalisation/…`, pas de PR, rien à
+la capitalisation y a **écrit** : sans écriture, pas de branche `capitalisation/…`, rien à
 fusionner pour l'orchestrateur. Une étape sans objet se dit en un mot et se saute.
 
 ## Interdits absolus
 
-- `git push --force` / `--force-with-lease` ; fusionner **ta propre** PR ; `gh pr merge --admin` ;
+- `git push --force` / `--force-with-lease` ; fusionner **ta propre** branche ;
 - `git add -A` / `git add .` sans avoir lu ce que ça ajoute ;
 - `git reset --hard`, `git checkout .`, `git clean -fd`, `git stash` silencieux ;
 - `docker compose down -v`, `docker system prune`, `docker stop $(docker ps -q)` ;
-- committer sur une branche que les règles du cluster réservent aux PR ;
-- pousser sur `main` du QG quand tu n'es pas l'orchestrateur — même « faute de PR ».
+- committer sur une branche où les règles du cluster ne font que fusionner (`develop`, `master`) ;
+- pousser sur `main` du QG quand tu n'es pas l'orchestrateur.
 
 ## 1. Recenser
 
@@ -101,20 +101,15 @@ b="capitalisation/<rôle>-$(date +%Y%m%d-%H%M)"
 git switch -c "$b" && git push -u origin "$b"
 ```
 
-La suite dépend de la forge, que la carte du QG nomme (`$KOA_QG/CLAUDE.md`) — ne la devine pas :
-
-- **une forge à PR** (GitHub, GitLab…) : `gh pr create --fill --base main`, ou son équivalent. La PR est
-  relue et fusionnée **par un autre rôle** que toi ; donne son lien.
-- **pas de PR possible** (un `git daemon` local, un dépôt nu partagé) : la branche poussée **est** la
-  demande de relecture. L'orchestrateur la relit et la fusionne ; donne son nom. Ce n'est pas une raison
-  de pousser sur `main` : l'absence de PR ne lève pas la relecture, elle la confie à l'orchestrateur.
+**La branche poussée est la demande de relecture** : ni PR, ni `gh`, quelle que soit la forge — elle n'est
+qu'un dépôt distant. L'orchestrateur la relit et la fusionne ; donne son nom et son SHA complet dans ta
+`CLÔTURE`.
 
 **L'orchestrateur clôt en dernier.** Il relit et fusionne d'abord les branches `capitalisation/…` des
-autres — avant son étape 2, pas à la 4 —, puis **relit le QG fusionné** avant de capitaliser : des clôtures parallèles n'ont pas vu les
+autres — avant son étape 2, pas à la 4 —, chacune par son SHA (`git merge --no-ff <SHA complet>`), puis **relit le QG fusionné** avant de capitaliser : des clôtures parallèles n'ont pas vu les
 pages l'une de l'autre, et un même fait peut y être arrivé deux fois — il le ramène à un seul endroit. Il
-pousse ensuite sur `main` ; sur une forge à PR qui protège `main`, il passe lui aussi par une PR. Une
-branche qu'il fusionne a été relue par lui, pas par son auteur : c'est ce qui la distingue de
-« fusionner ta propre PR ».
+pousse ensuite sur `main`. Une branche qu'il fusionne a été relue par lui, pas par son auteur : c'est ce
+qui la distingue de « fusionner ta propre branche ».
 
 Un push rejeté : rapporte l'écart (`git rev-list --left-right --count @{upstream}...HEAD`), ne rebase
 pas d'office.
@@ -144,7 +139,7 @@ Capitalisation : 1 page au dépôt, 1 consigne au QG, 1 issue rédigée à ouvri
 Outillage : 1 script créé (où), 1 candidat à 2/3 noté au QG, 1 hook corrigé — ou « rien de répété ».
 Tests : <dépôt> « <dernière ligne de la sortie> », par dépôt dont le code a changé.
 | Dépôt | Commits | Push | État final |
-QG : PR <lien>, à relire par un autre rôle — ou branche capitalisation/<rôle>-…, à fusionner par l'orchestrateur.
+QG : branche capitalisation/<rôle>-… @<SHA complet>, à relire et fusionner par l'orchestrateur.
 Conteneurs : …
 Non refermé : … (ou « rien »)
 ```
@@ -160,7 +155,7 @@ consigné sans destinataire si personne ne l'a demandé :
 CLÔTURE — <rôle>
 Capitalisation : <écrit, où ; proposé, où> — ou « rien »
 Outillage : <créé ou corrigé, où ; candidats et leur compte n/3> — ou « rien de répété »
-Poussé : <dépôts ; branche capitalisation/… à fusionner> — ou « rien »
+Poussé : <dépôts ; branche capitalisation/… @<SHA complet> à fusionner> — ou « rien »
 Non refermé : <ce qui tourne ou reste sale> — ou « rien »
 ```
 

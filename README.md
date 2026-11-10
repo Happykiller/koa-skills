@@ -13,7 +13,7 @@ confiance**, et cloisonnée par les accès plutôt que par la consigne.
 | Plugin | Ce qu'il apporte |
 |---|---|
 | `koa` | `monter-le-qg` : monter, puis tenir conforme, le QG d'un cluster — le dépôt qui porte la carte de ses dépôts, ses environnements, sa KB, ses plugins épinglés · `mener-un-chantier` : l'orchestrateur mène un chantier d'équipe — inventaire, tour de table, plan en vagues et Gantt au QG, missions, finaliser, livrer · `poser-la-memoire` : le ghost — la KB et le `CLAUDE.md` d'un projet seul, ou leur répartition dans un cluster (QG, dépôt de la stack, seed d'un agent) · `capitaliser` : ranger ce qu'une session a appris au bon étage, écrit jusqu'au QG, proposé au-dessus · `clore` : la fin de session d'un agent de cluster, QG compris · le sous-agent `explorateur` : lit à la place d'un agent, en lecture seule et sur un plus petit modèle, et ne lui rend que la synthèse |
-| `garde-fous` | un hook qui refuse toute commande de déploiement visant une cible que le QG ne déclare pas permise, ou qu'il déclare interdite aux agents ; et toute fusion sans `--match-head-commit`, avec `--admin`, ou hors de l'orchestrateur — par `gh pr merge`, l'API ou un `git push` sur une branche protégée |
+| `garde-fous` | un hook qui refuse toute commande de déploiement visant une cible que le QG ne déclare pas permise, ou qu'il déclare interdite aux agents ; et, sur une branche protégée, toute fusion qui ne nomme pas le SHA complet de la tête relue, toute poussée forcée, et toute poussée hors de l'orchestrateur — le framework fusionne par git seul, sans PR ni CI |
 | `equipe-devops` | les vingt workflows du rôle DevOps : analyser une infrastructure, déployer, revenir en arrière, diagnostiquer, sauvegarder… |
 | `equipe-tech` | les gestes du rôle Tech : `corriger-une-anomalie` (test rouge d'abord), `implementer-une-evolution`, `verifier-avant-de-livrer` (diff relu, tests lancés et cités, « Pas vérifié » écrit), `relire-une-modification` (preuves rejouées, constats classés) |
 
@@ -22,7 +22,7 @@ confiance**, et cloisonnée par les accès plutôt que par la consigne.
 Une fois par dépôt, depuis ce dépôt :
 
 ```bash
-claude plugin marketplace add https://github.com/Happykiller/koa-skills.git#v0.15.0
+claude plugin marketplace add https://github.com/Happykiller/koa-skills.git#v0.16.0
 claude plugin install garde-fous@koa-skills --scope project
 claude plugin install koa@koa-skills --scope project
 claude plugin install equipe-devops@koa-skills --scope project
@@ -35,7 +35,7 @@ Ou, pour que le dépôt les déclare lui-même, dans son `.claude/settings.json`
 ```json
 {
   "extraKnownMarketplaces": {
-    "koa-skills": { "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.15.0" } }
+    "koa-skills": { "source": { "source": "github", "repo": "Happykiller/koa-skills", "ref": "v0.16.0" } }
   },
   "enabledPlugins": {
     "garde-fous@koa-skills": true,
@@ -82,12 +82,25 @@ passer. Python ne démarre que pour les commandes qui nomment un outil de déplo
 
 ### La fusion
 
-Toujours active, sans configuration : c'est une règle du framework. Un `gh pr merge` est refusé s'il
-porte `--admin`, s'il ne nomme pas la tête relue (`--match-head-commit` et son SHA complet), ou si la
-distro est née de KoA sans que sa seed lui donne le droit de fusionner — seul l'orchestrateur fusionne.
-Une commande qui parle de fusion sans se laisser lire est refusée aussi.
+Toujours active, sans configuration : c'est une règle du framework. **Le framework fusionne par git seul**
+(0.5.0) : ni PR, ni CI à attendre, la forge n'est qu'un dépôt distant. L'orchestrateur fusionne la tête
+que la `REVUE` a acceptée, puis pousse :
 
-Sans ce droit, les deux autres chemins vers une branche protégée sont fermés (0.4.0) : un `gh api` qui
+```bash
+git merge --no-ff <SHA complet de la REVUE>
+git push origin develop
+```
+
+Ce que la forge refusait, le garde le refuse, **à tous, orchestrateur compris** : sur une branche protégée,
+un `git merge` qui ne nomme pas un SHA complet (40 caractères) — `--ff-only`, `--abort` et `--continue`
+passent — ; une poussée forcée (`--force`, `-f`, `--force-with-lease`, `+dst`) ; une suppression. Une fusion
+qui ne se laisse pas lire est refusée aussi.
+
+Un `gh pr merge`, pour qui s'en sert encore, reste refusé s'il porte `--admin`, s'il ne nomme pas la tête
+relue (`--match-head-commit` et son SHA complet), ou si la distro est née de KoA sans que sa seed lui donne
+le droit de fusionner — seul l'orchestrateur fusionne.
+
+Sans ce droit, les chemins vers une branche protégée sont fermés (0.4.0) : un `gh api` qui
 **écrit** une fusion (`…/pulls/…/merge`, `…/merges`, `…/git/refs/heads/…`, `…/branches/…/protection`,
 `graphql` avec `mergePullRequest`), et un `git push` dont une destination est protégée — par nom,
 `src:dst`, `refs/heads/…`, ou la branche courante quand il n'en donne pas ; `--all`, `--mirror` et
@@ -98,9 +111,11 @@ que le QG déclare :
 { "fusion": { "branches_protegees": ["develop", "main"] } }
 ```
 
-L'orchestrateur, qui a le droit, pousse et fusionne librement. Un alias de `gh` ou de `git`, un
-script, un interpréteur ou `curl` vers l'API ne sont pas reconnus : le garde tient contre la dérive,
-pas contre la malveillance — la vraie cloison est une identité GitHub propre à l'orchestrateur.
+L'orchestrateur, qui a le droit, pousse ce qu'il a fusionné. Un alias de `gh` ou de `git`, un script, un
+interpréteur, `curl` vers l'API, ou une fusion par un autre chemin que `git merge` (`git pull <dépôt>
+<branche>`, `cherry-pick`) ne sont pas reconnus : le garde tient contre la dérive, pas contre la
+malveillance — la vraie cloison est une identité git propre à l'orchestrateur, seule à pouvoir pousser sur
+les branches protégées du dépôt distant.
 
 ## Licence
 

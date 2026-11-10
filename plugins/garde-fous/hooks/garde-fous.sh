@@ -14,7 +14,7 @@ conf_propre() {
   return 1
 }
 
-if ! printf '%s' "$entree" | grep -Eq 'kubectl|helm|terraform|tofu|[^a-z]az[^a-z]|[^a-z]aws[^a-z]|gcloud|docker|vercel|netlify|[^a-z]fly|railway|heroku|ansible|[^a-z]gh[^a-z]|[^a-z]push[^a-z]' \
+if ! printf '%s' "$entree" | grep -Eq 'kubectl|helm|terraform|tofu|[^a-z]az[^a-z]|[^a-z]aws[^a-z]|gcloud|docker|vercel|netlify|[^a-z]fly|railway|heroku|ansible|[^a-z]gh[^a-z]|[^a-z]push[^a-z]|[^a-z]merge[^a-z]' \
    && ! conf_propre; then
   exit 0
 fi

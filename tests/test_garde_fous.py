@@ -422,6 +422,79 @@ class BranchesProtegees(unittest.TestCase):
         self.permis(['git commit -m "pas fermé'])
 
 
+SHA = "0123456789abcdef0123456789abcdef01234567"
+
+
+class FusionParGit(unittest.TestCase):
+    """0.5.0 : le framework fusionne par git seul. Ce que la forge refusait — une tête qui a bougé, une
+    protection passée outre — se refuse ici, à tous, orchestrateur compris."""
+
+    juger, refuses, permis = BranchesProtegees.juger, BranchesProtegees.refuses, BranchesProtegees.permis
+
+    def setUp(self):
+        BranchesProtegees.setUp(self)
+        BranchesProtegees.donner_le_droit(self)
+
+    def test_un_sha_complet_se_fusionne_sur_une_branche_protegee(self):
+        self.permis([f"git merge --no-ff {SHA}",
+                     f"git merge --no-ff -m 'M3 — le résultat' {SHA}",
+                     f"git -c user.name=x merge --no-ff {SHA} && git push origin develop"], cwd=depot("develop"))
+
+    def test_une_branche_ne_se_fusionne_pas_sur_une_branche_protegee(self):
+        self.refuses(["git merge --no-ff feature/x",
+                      "git merge origin/feature/x",
+                      "git merge 0123456",  # un SHA court n'est pas la tête que la REVUE cite
+                      f"git merge {SHA} feature/y",
+                      "git merge"], "SHA complet", cwd=depot("develop"))
+
+    def test_se_mettre_a_jour_ou_reprendre_une_fusion_passe(self):
+        self.permis(["git merge --ff-only origin/develop", "git merge --abort", "git merge --continue",
+                     "git log --merges develop..HEAD", "git commit -m 'merge de la feature'"], cwd=depot("develop"))
+
+    def test_hors_d_une_branche_protegee_git_merge_n_est_pas_regarde(self):
+        self.permis(["git merge origin/develop", "git merge --no-ff feature/x-m3"], cwd=depot("feature/x"))
+
+    def test_la_branche_qu_on_vient_de_rendre_courante_compte(self):
+        ailleurs = depot("feature/x")
+        self.refuses(["git switch develop && git merge --no-ff feature/x",
+                      "git checkout master; git merge develop",
+                      f"cd {depot('develop')} && git merge feature/x",
+                      f"git -C {depot('main')} merge capitalisation/tech"], "SHA complet", cwd=ailleurs)
+        self.permis([f"git switch develop && git merge --no-ff {SHA}",
+                     "git switch -c feature/y develop && git merge feature/x",
+                     "git checkout -- develop && git merge feature/y"], cwd=ailleurs)
+
+    def test_le_qg_declare_aussi_ou_la_tete_s_exige(self):
+        os.makedirs(os.path.join(self.projet, ".claude"))
+        with open(os.path.join(self.projet, ".claude", "garde-fous.json"), "w", encoding="utf-8") as f:
+            json.dump({"fusion": {"branches_protegees": ["prod"]}}, f)
+        self.permis(["git merge feature/x"], cwd=depot("develop"))
+        self.refuses(["git merge feature/x"], "« prod »", cwd=depot("prod"))
+
+    def test_une_branche_protegee_ne_se_force_pas_meme_par_l_orchestrateur(self):
+        self.refuses(["git push --force origin develop", "git push -f", "git push --force-with-lease origin HEAD",
+                      "git push origin +develop", "git push -fu origin develop", "git push --all --force"],
+                     "ne se force ni ne se supprime", cwd=depot("develop"))
+        self.refuses(["git push origin --delete develop", "git push origin :main"], "on ne la supprime pas",
+                     cwd=depot("feature/x"))
+
+    def test_l_orchestrateur_pousse_ce_qu_il_a_fusionne(self):
+        self.permis(["git push origin develop", "git push", "git push --force-with-lease origin feature/x",
+                     "git push origin --delete feature/x-m3"], cwd=depot("develop"))
+
+    def test_sans_le_droit_la_meme_regle_vaut(self):
+        os.remove(self.gf.TEMOIN_DROITS)
+        self.refuses(["git merge feature/x"], "SHA complet", cwd=depot("develop"))
+
+    def test_hors_d_une_distro_koa_la_tete_s_exige_aussi(self):
+        os.remove(self.gf.MARQUE_KOA)
+        self.refuses(["git merge feature/x"], "SHA complet", cwd=depot("develop"))
+        self.refuses(["git push --force origin develop"], "ne se force", cwd=depot("develop"))
+
+    def test_une_fusion_illisible_est_refusee(self):
+        self.refuses(['git merge --no-ff -m "pas fermé ' + SHA], "ne se lit pas", cwd=depot("develop"))
+
+
 class GardeQuiPlante(unittest.TestCase):
     """Un garde qui plante sortait en code 1 : Claude Code le lit comme une erreur non bloquante, et
     le déploiement passait."""

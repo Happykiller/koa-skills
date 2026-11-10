@@ -1,6 +1,6 @@
 ---
 name: relire-une-modification
-description: "Quand : on te demande la REVUE d'une tête ou d'une PR. Preuves rejouées, lecture du diff et de ses consommateurs, constats classés, verdict. Pas pour : vérifier ton propre travail (verifier-avant-de-livrer)."
+description: "Quand : on te demande la REVUE d'une tête. Preuves rejouées, lecture du diff et de ses consommateurs, constats classés, verdict. Pas pour : vérifier ton propre travail (verifier-avant-de-livrer)."
 ---
 
 # Relire une modification
@@ -12,7 +12,8 @@ rend sur l'ancienne en le disant.
 ## Étapes
 
 1. **Fixer la tête** : le SHA complet que l'auteur a livré, `git fetch` puis `git checkout <sha>`.
-2. **Rejouer les contrôles** du rapport — tests, build, lint — et comparer les sorties. Un test qui
+2. **Rejouer les contrôles** du rapport — tests, build, lint — et comparer les sorties : il n'y a pas de CI
+   à attendre, ta revue **est** le contrôle, sur ce SHA. Un test qui
    couvre un défaut corrigé se voit échouer **sans** la correction avant d'être cru : un test peut
    affirmer le défaut au lieu de le détecter.
 3. **Lire le diff** : correction, cas limites, erreurs avalées, sécurité (autorisation unique et au bon

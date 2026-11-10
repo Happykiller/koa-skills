@@ -39,14 +39,25 @@ fusionnaient sans rien demander à qui partage l'identité GitHub de l'équipe :
 L'orchestrateur, qui a le témoin, n'est pas visé : il pousse son registre de chantier sur la branche
 principale du QG (`equipe/table`, « Le chantier »).
 
+Depuis la 0.5.0, le framework fusionne **par git seul** (`equipe/table`, « Fusionner ») : plus de PR, plus
+de CI à attendre, la forge n'est qu'un dépôt distant. Ce que la forge refusait, c'est ce garde qui le
+refuse désormais, **à tous**, orchestrateur compris :
+- `git merge` joué sur une branche protégée sans nommer **un SHA complet** : on fusionne la tête que la
+  `REVUE` a acceptée, pas une branche qui a pu bouger depuis — c'est ce que `--match-head-commit` tenait.
+  `--ff-only` (se mettre à jour), `--abort`, `--continue` et `--quit` passent. La branche est celle du
+  dépôt, ou celle qu'un `git switch` / `git checkout` d'un segment précédent vient de rendre courante ;
+- `git push` **forcé** (`--force`, `-f`, `--force-with-lease`, `+dst`) vers une branche protégée, ou qui
+  la supprime : ce que `--admin` permettait de passer.
+
 La commande est lue segment par segment (`&&`, `||`, `;`, `|`, `&`, retours à la ligne) : une option
 écrite dans un `echo` voisin ne compte pas pour la fusion.
 
 Les limites, dites plutôt que tues : un alias de `gh` ou de `git`, un script ou un interpréteur
 (`node`, `python`) qui les appelle, `curl` vers l'API, un `--input` de graphql qu'on ne lit pas. Ce
 garde tient contre la dérive, pas contre la malveillance : l'agent a `sudo` dans sa distro, et son
-témoin est dans son foyer. La vraie cloison est une identité GitHub propre à l'orchestrateur, seule à
-pouvoir contourner le ruleset de ses branches.
+témoin est dans son foyer. La vraie cloison est une identité git propre à l'orchestrateur, seule à
+pouvoir pousser sur les branches protégées du dépôt distant. Une fusion locale par un autre chemin que
+`git merge` (`git pull <dépôt> <branche>`, `cherry-pick`, `rebase`) n'est pas lue non plus.
 """
 import datetime
 import json
@@ -103,7 +114,7 @@ COQUILLES = {"sh", "bash", "zsh", "dash"}
 # Le filet grossier, quand le jugement fin a planté : un mot d'outil de déploiement ou de fusion.
 # Le même que celui de `garde-fous.sh`, qui ne lance Python que s'il le voit.
 SUSPECT = (r"kubectl|helm|terraform|tofu|\baz\b|\baws\b|gcloud|docker|vercel|netlify|\bfly|railway"
-           r"|heroku|ansible|\bgh\b|\bpush\b")
+           r"|heroku|ansible|\bgh\b|\bpush\b|\bmerge\b")
 
 BRANCHES_PROTEGEES = ["develop", "master", "main"]
 
@@ -118,6 +129,13 @@ API_CHAMPS = {"-f", "--raw-field", "-F", "--field", "--input"}
 # Les options de git avant la sous-commande, et celles de `git push`, qui prennent une valeur séparée.
 GIT_OPTIONS_A_VALEUR = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env"}
 PUSH_OPTIONS_A_VALEUR = {"--repo", "-o", "--push-option", "--receive-pack", "--exec"}
+PUSH_FORCE = {"--force", "--force-with-lease", "--force-if-includes"}
+MERGE_OPTIONS_A_VALEUR = {"-m", "-F", "--file", "-s", "--strategy", "-X", "--strategy-option", "--into-name",
+                          "--cleanup"}
+# Ce qu'un `git merge` fait sans fusionner une tête nouvelle : avancer sans commit de fusion, ou
+# reprendre et abandonner une fusion en cours.
+MERGE_SANS_TETE = {"--ff-only", "--abort", "--continue", "--quit"}
+BRANCHE_CREEE = {"-c", "-C", "-b", "-B", "--create", "--force-create", "--orphan"}
 AFFECTATION = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 
 
@@ -319,16 +337,77 @@ def git_lit(dossier, *args):
 
 def poussee_protegee(mots, dossier, protegees):
     """La raison du refus quand ce segment est un `git push` qui atteint une branche protégée, ou None."""
+    return poussee_vers_protegee(mots, dossier, protegees)[0]
+
+
+def poussee_forcee(mots):
+    """Vrai quand ce segment est un `git push` qui force : une option, ou un `+` devant une destination."""
+    suite, nom, _ = sous_commande(mots, "git", GIT_OPTIONS_A_VALEUR)
+    if nom != "push":
+        return False
+    return any(mot in PUSH_FORCE or mot.startswith("--force-with-lease=") or mot.startswith("+")
+               or (re.fullmatch(r"-[a-zA-Z]+", mot) and "f" in mot) for mot in mots[suite:])
+
+
+def branche_changee(mots):
+    """La branche qu'un `git switch` ou un `git checkout` de ce segment rend courante, ou None."""
+    suite, nom, dossier_c = sous_commande(mots, "git", GIT_OPTIONS_A_VALEUR)
+    if nom not in ("switch", "checkout") or dossier_c:
+        return None
+    reste = mots[suite:]
+    for i, mot in enumerate(reste[:-1]):
+        if mot in BRANCHE_CREEE:
+            return reste[i + 1]
+    for mot in reste:
+        if mot == "--":
+            break
+        if not mot.startswith("-"):
+            return mot
+    return None
+
+
+def fusion_sans_tete(mots, dossier, protegees, courante=None):
+    """La raison du refus quand ce segment est un `git merge` joué sur une branche protégée sans nommer
+    le SHA complet de la tête relue, ou None. `courante` : la branche qu'un segment précédent a rendue
+    courante, que le dépôt ne connaît pas encore au moment où le garde lit."""
+    suite, nom, dossier_c = sous_commande(mots, "git", GIT_OPTIONS_A_VALEUR)
+    if nom != "merge":
+        return None
+    reste = mots[suite:]
+    if any(mot in MERGE_SANS_TETE for mot in reste):
+        return None
+    if dossier_c:
+        dossier, courante = os.path.join(dossier, os.path.expanduser(dossier_c)), None
+    branche = courante or git_lit(dossier, "symbolic-ref", "--short", "HEAD")
+    if branche not in protegees:
+        return None
+    tetes, i = [], 0
+    while i < len(reste):
+        if reste[i] in MERGE_OPTIONS_A_VALEUR:
+            i += 1
+        elif not reste[i].startswith("-"):
+            tetes.append(reste[i])
+        i += 1
+    if len(tetes) == 1 and SHA_COMPLET.fullmatch(tetes[0]):
+        return None
+    return (f"« {branche} » est une branche protégée : on y fusionne la tête que la REVUE a acceptée, par "
+            "son SHA complet (40 caractères) — `git merge --no-ff <SHA>` —, pas une branche qui a pu bouger "
+            "depuis. Pour seulement te mettre à jour : `git merge --ff-only`")
+
+
+def poussee_vers_protegee(mots, dossier, protegees):
+    """(la raison, vrai si elle supprime) quand ce segment est un `git push` qui atteint une branche
+    protégée ; (None, False) sinon."""
     suite, nom, dossier_c = sous_commande(mots, "git", GIT_OPTIONS_A_VALEUR)
     if nom != "push":
-        return None
+        return None, False
     if dossier_c:
         dossier = os.path.join(dossier, os.path.expanduser(dossier_c))
     positionnels, supprime, i = [], False, suite
     while i < len(mots):
         mot = mots[i]
         if mot in ("--all", "--mirror", "--branches"):
-            return f"{mot} pousserait aussi les branches protégées"
+            return f"{mot} pousserait aussi les branches protégées", False
         if mot == "--delete" or (re.fullmatch(r"-[a-zA-Z]+", mot) and "d" in mot):
             supprime = True
         elif mot in PUSH_OPTIONS_A_VALEUR:
@@ -338,7 +417,7 @@ def poussee_protegee(mots, dossier, protegees):
         i += 1
 
     if "--tags" in mots[suite:] and len(positionnels) < 2:
-        return None  # des étiquettes, aucune branche
+        return None, False  # des étiquettes, aucune branche
     destinations = []
     for spec in positionnels[1:]:
         spec = spec.lstrip("+")
@@ -349,7 +428,7 @@ def poussee_protegee(mots, dossier, protegees):
         # Sans destination, git suit `push.default` : `matching` pousse toutes les branches qui
         # existent des deux côtés, les protégées comprises.
         if not supprime and not destinations and git_lit(dossier, "config", "push.default") == "matching":
-            return "push.default=matching pousserait aussi les branches protégées"
+            return "push.default=matching pousserait aussi les branches protégées", False
         destinations = [d for d in destinations if d != "HEAD"]
         courante = git_lit(dossier, "symbolic-ref", "--short", "HEAD")
         if courante:
@@ -360,8 +439,9 @@ def poussee_protegee(mots, dossier, protegees):
     for dst in destinations:
         nom_branche = dst[len("refs/heads/"):] if dst.startswith("refs/heads/") else dst
         if nom_branche in protegees:
-            return (f"« {nom_branche} » est une branche protégée" + (" : on ne la supprime pas" if supprime else ""))
-    return None
+            return (f"« {nom_branche} » est une branche protégée" + (" : on ne la supprime pas" if supprime else ""),
+                    bool(supprime))
+    return None, False
 
 
 def dossiers_par_segment(segments, depart):
@@ -376,6 +456,25 @@ def dossiers_par_segment(segments, depart):
 
 SEUL_L_ORCHESTRATEUR = ("Garde-fous KoA : seul l'orchestrateur fusionne (equipe/table, « Fusionner »). "
                         "Livre ta tête, et adresse ton RÉSULTAT aux relecteurs de ta fiche.")
+
+
+def juger_gestes_de_tous(segments, dossier, projet):
+    """Ce que personne ne fait à une branche protégée, orchestrateur compris : y fusionner autre chose
+    qu'un SHA relu, la forcer, la supprimer. La forge le refusait ; sans elle, c'est ici."""
+    protegees = branches_protegees(projet)
+    courante = None
+    for mots, ici in zip(segments, dossiers_par_segment(segments, dossier)):
+        if mots and mots[0] == "cd":
+            courante = None  # un autre dépôt : sa branche se relit
+        motif = fusion_sans_tete(mots, ici, protegees, courante)
+        if motif:
+            return "deny", f"Garde-fous KoA : {motif} (equipe/table, « Fusionner »)."
+        motif, supprime = poussee_vers_protegee(mots, ici, protegees)
+        if motif and (supprime or poussee_forcee(mots)):
+            return "deny", (f"Garde-fous KoA : {motif}. Une branche protégée ne se force ni ne se supprime, "
+                            "par personne : une poussée refusée se dit à l'humain (equipe/table, « Fusionner »).")
+        courante = branche_changee(mots) or courante
+    return None, None
 
 
 def juger_branches_protegees(segments, dossier, projet):
@@ -411,8 +510,15 @@ def juger_fusion(commande, dossier=None, projet=None):
             return "deny", ("Garde-fous KoA : cette commande parle de poussée ou de fusion et ne se lit "
                             "pas (guillemets non fermés ?). On refuse ce qu'on n'a pas su lire : "
                             "récris-la sur une ligne lisible.")
+        if re.search(r"\bgit\s+(?:-\S+\s+)*merge\b", commande):
+            return "deny", ("Garde-fous KoA : cette commande fusionne (git merge) et ne se lit pas "
+                            "(guillemets non fermés ?). Pour une fusion, on refuse ce qu'on n'a pas su "
+                            "lire : récris-la sur une ligne lisible.")
         return None, None
 
+    decision, raison = juger_gestes_de_tous(segments, dossier or os.getcwd(), projet)
+    if decision:
+        return decision, raison
     fusions = [suite for suite in map(fusion_dans, segments) if suite is not None]
     if not fusions:
         if droit_de_fusionner():
