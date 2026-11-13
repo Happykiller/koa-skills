@@ -27,7 +27,7 @@ décisions, les observations, les capacités, le titre de chaque vague (`waves`)
 
 **Actualiser** = `chantier_actualiser` (`table`, `chantier`, `generateur` : `${CLAUDE_PLUGIN_ROOT}/scripts/livrables.py`).
 KoA y joint les faits de la Cantina et écrit sous `docs/chantiers/<chantier>/genere/` : `plan.md` (missions, états,
-heures, Gantt, blocages), `bilan.md` (pour le pilote), `rex.md` (amélioration continue), `livraison.md` (pour les
+heures, Gantt, blocages, attentes de l'humain), `bilan.md` (pour le pilote), `rex.md` (amélioration continue), `livraison.md` (pour les
 autres métiers) et **`suivi.html`, la page de suivi de l'humain**. Il y joint aussi le **coût par mission** (modèle,
 effort, tours, jetons), qu'il lit dans les transcripts : ne le compte pas, ne le recopie pas, il ne te coûte rien. Il ne
 rend que les chemins : ne relis pas les vues pour les recopier, cite-les. Sans cet outil,
@@ -87,7 +87,16 @@ Pas de jalon sans risque d'incompatibilité nommé (`risks`), et un jalon ne rem
 finales.
 
 Pose à l'humain **toutes** les décisions prévisibles en un message, avec `genere/plan.md`, et sa validation du plan
-en même temps. Rien ne part avant sa réponse.
+en même temps. Rien ne part avant sa réponse. **L'humain n'est pas devant son écran pendant le chantier** : ce message
+porte aussi, pour qu'il les règle d'un coup avant de partir,
+
+- **les permissions de chaque rôle** : chaque geste du plan qu'un agent ne pourra pas faire seul — un environnement
+  partagé lu ou écrit, un outil tiers, une livraison — avec le rôle, et ce qu'il faut poser (le bloc `autoMode` de sa
+  distro, un accord écrit dans son onglet). Une permission demandée en cours de route arrête l'agent jusqu'au retour de
+  l'humain, la nuit comprise ;
+- **le mandat** : ce que tu pourras trancher seul s'il ne répond pas — une exception de dépendance courte quand la
+  sécurité conclut à une exposition nulle, un compte de recette pour un geste d'administration — et ce qui l'attendra
+  toujours. Sa réponse va au registre (`decisions`) ; tu t'y réfères quand tu tranches, et tu le dis à la table.
 
 ## 5. Les missions
 
@@ -182,6 +191,13 @@ pour reprendre plus tard n'est pas une raison de ne pas clore, rien ne garantit 
 
 ## Arrêts
 
-Tu t'arrêtes et portes la question à l'humain — une fois, avec les options — quand : une décision lui revient ; un
-rôle nécessaire manque et le budget ne permet pas de l'ouvrir ; une fusion est refusée (jamais contournée) ; deux
-tentatives sur la même cause ont échoué ; `chantier_actualiser` refuse le registre (corrige-le, ne contourne pas).
+Tu t'arrêtes et portes la question à l'humain — une fois, avec les options — quand : une décision lui revient et
+n'est pas au mandat ; un rôle nécessaire manque et le budget ne permet pas de l'ouvrir ; une fusion est refusée (jamais
+contournée) ; deux tentatives sur la même cause ont échoué ; `chantier_actualiser` refuse le registre (corrige-le, ne
+contourne pas).
+
+**Toute attente de l'humain s'écrit à la table**, sans quoi elle ne se mesure pas : ta question part en `BLOCAGE` ou
+`QUESTION` adressé à `humain` (`cantina_dire`), avec la mission ; sa réponse, tu la relaies en nommant l'humain
+(« l'humain a tranché : option a »). Les vues datent l'attente de l'une à l'autre ; celles des permissions, KoA les
+date seul. En attendant, fais avancer tout ce qui ne dépend pas de la réponse. Au REX, chaque attente de plus de
+30 min est une observation : la permission qu'il fallait poser au plan, la décision qu'il fallait mettre au mandat.

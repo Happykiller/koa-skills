@@ -89,7 +89,7 @@ En quelques lignes : ce qui a été **créé**, **complété**, laissé **tel qu
 **à renseigner**. Puis ce que l'humain doit faire lui-même :
 
 - installer les plugins une fois pour ce dépôt :
-  `claude plugin marketplace add https://github.com/Happykiller/koa-skills.git#v0.16.0` puis
+  `claude plugin marketplace add https://github.com/Happykiller/koa-skills.git#v0.17.0` puis
   `claude plugin install <plugin>@koa-skills --scope project` pour chacun ;
 - relire et committer.
 

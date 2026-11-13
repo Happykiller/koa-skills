@@ -151,6 +151,99 @@ def suivre(missions, faits):
     return suivi
 
 
+# --- Les attentes de l'humain -------------------------------------------------------------------------------------
+# Le chantier c11 d'un cluster a duré 22 h 47 pour sept heures de travail : deux permissions restées sans réponse,
+# l'une la nuit, l'autre une journée entière, ont arrêté l'équipe 14 h 30 — et le REX n'en disait rien, il comptait
+# « du premier départ à la dernière acceptation » (épic 221 de KoA). Une attente qu'on ne mesure pas ne se réduit pas.
+KOA = "koa"
+HUMAIN = "humain"
+PERMISSION = re.compile(r"@([\w.-]+) attend une permission depuis (\d+) s")
+LEVEE = "ATTENTE LEVÉE"
+LEVEE_QUI = re.compile(r"@([\w.-]+)")
+
+
+def attentes_humain(faits):
+    """Chaque attente de l'humain, datée : qui, sur quelle mission, pour quoi, de quand à quand.
+
+    Deux causes, toutes deux écrites au journal :
+    - **permission** : KoA dit l'agent figé sur une permission (« @x attend une permission depuis N s »), et la lève
+      par « ATTENTE LEVÉE — @x … » à la réponse. Un journal d'avant cette ligne se ferme au message suivant de l'agent :
+      figé sur sa permission, il ne pouvait rien écrire d'autre.
+    - **décision** : un agent écrit sa QUESTION ou son BLOCAGE à @humain. L'attente court jusqu'à ce que l'humain lui
+      écrive à la table, ou jusqu'à son premier message qui nomme l'humain — celui qui relaie sa réponse (« l'humain a
+      décidé… ») — ou sa clôture. Un pilote coordonne en attendant : son message suivant ne dit rien de la réponse.
+    Une attente encore ouverte au dernier fait a `fin` à None : elle se mesure jusqu'au dernier fait, et se dit en cours."""
+    attentes, ouvertes = [], {}
+
+    def fermer(qui, quand, causes):
+        for cause in causes:
+            a = ouvertes.pop((qui, cause), None)
+            if a:
+                a["fin"] = max(quand, a["debut"])
+
+    for f in faits:
+        auteur, texte, type_ = f.get("Auteur"), f.get("Texte") or "", f.get("Type")
+        if auteur == KOA:
+            if (p := PERMISSION.search(texte)) and (p.group(1), "permission") not in ouvertes:
+                # À la seconde : retrancher 61 s d'une minute tronquée avancerait le début d'une minute.
+                try:
+                    envoi = datetime.datetime.strptime(str(f["Quand"])[:19], "%Y-%m-%dT%H:%M:%S")
+                except ValueError:
+                    envoi = f["quand"]
+                debut = (envoi - datetime.timedelta(seconds=int(p.group(2)))).replace(second=0)
+                a = {"qui": p.group(1), "cause": "permission", "mission": f.get("Mission"), "debut": debut, "fin": None,
+                     "n": f.get("MessageId")}
+                ouvertes[(a["qui"], "permission")] = a
+                attentes.append(a)
+            elif type_ == LEVEE and (q := LEVEE_QUI.search(texte)):
+                fermer(q.group(1), f["quand"], ["permission"])
+            continue
+        if auteur == HUMAIN:
+            if f.get("Destinataire"):
+                fermer(f["Destinataire"], f["quand"], ["décision"])
+            continue
+        fermer(auteur, f["quand"], ["permission"])
+        if HUMAIN in texte.lower() or type_ in ("CLÔTURE", "COMPTE RENDU"):
+            fermer(auteur, f["quand"], ["décision"])
+        if f.get("Destinataire") == HUMAIN and type_ in ("QUESTION", "BLOCAGE"):
+            a = {"qui": auteur, "cause": "décision", "mission": f.get("Mission"), "debut": f["quand"], "fin": None,
+                 "n": f.get("MessageId")}
+            ouvertes[(auteur, "décision")] = a
+            attentes.append(a)
+    return sorted(attentes, key=lambda a: (a["debut"], a["qui"]))
+
+
+def temps_d_attente(attentes, borne):
+    """Les minutes où au moins un agent attendait l'humain : deux attentes qui se recouvrent ne comptent qu'une fois."""
+    total, courant = 0, None
+    for debut, fin in sorted((a["debut"], a["fin"] or borne or a["debut"]) for a in attentes):
+        if courant and debut <= courant[1]:
+            courant[1] = max(courant[1], fin)
+            continue
+        if courant:
+            total += minutes_entre(*courant)
+        courant = [debut, fin]
+    if courant:
+        total += minutes_entre(*courant)
+    return total
+
+
+def ligne_attente(a, borne):
+    fin = heure(a["fin"]) if a["fin"] else "en cours"
+    return [a["qui"], a["mission"] or "—", a["cause"], heure(a["debut"]), fin, duree(a["debut"], a["fin"] or borne),
+            f"n°{a['n']}"]
+
+
+def section_attentes(attentes, borne, journal):
+    if not journal:
+        return "Pas mesuré : la génération n'a pas reçu le journal de la Cantina.\n"
+    if not attentes:
+        return "Aucune : personne n'a attendu l'humain.\n"
+    return (tableau(["Qui", "Mission", "Cause", "Début", "Fin", "Durée", "Source"], [ligne_attente(a, borne) for a in attentes]) +
+            "\nUne permission se pose d'avance, à la validation du plan ; une décision prévisible se met au mandat de la "
+            "demande. Chaque attente longue appelle une observation au REX.\n")
+
+
 def etat(mission, s, avec_journal):
     if not avec_journal:
         return clean(mission.get("state") or PAS_MESURE)
@@ -178,7 +271,7 @@ def ordre_vague(m):
     return (m["wave"] if isinstance(m.get("wave"), int) else 10 ** 6, m["id"])
 
 
-def gantt(missions, suivi, borne):
+def gantt(missions, suivi, borne, attentes=()):
     """Le plan entier : ce qui est parti à ses heures, ce qui reste derrière ses dépendances, à sa durée prévue.
 
     Ce qui n'est pas parti n'a pas d'heure : il se place après ses dépendances, ou au dernier fait du journal, jamais à
@@ -206,9 +299,23 @@ def gantt(missions, suivi, borne):
         lignes.append(f"    {m['id']} :{tache}, {quand}, {duree_prevue}")
     if not parties:
         return "Aucune mission partie : pas de Gantt.\n"
+    lignes += lignes_gantt_attentes(attentes, borne, "    ")
     note = ("" if all(prevu(m) or suivi[m["id"]]["debut"] for m in missions) else
             f"\nUne mission sans `estimate_min` au registre tient {PREVU_PAR_DEFAUT} min au Gantt : ce n'est pas une estimation.\n")
     return "```mermaid\n" + "\n".join(lignes) + "\n```\n" + note
+
+
+def lignes_gantt_attentes(attentes, borne, retrait):
+    """Les attentes de l'humain sous le plan, en rouge : un trou dans les barres se lit comme une équipe lente, pas
+    comme une équipe arrêtée."""
+    if not attentes:
+        return []
+    lignes = [f"{retrait}section Attente de l'humain"]
+    for i, a in enumerate(attentes, 1):
+        fin = max(a["fin"] or borne or a["debut"], a["debut"] + datetime.timedelta(minutes=1))
+        nom = re.sub(r"[:#;]", " ", f"{a['qui']} {a['cause']}")
+        lignes.append(f"{retrait}{nom} :crit, H{i}, {a['debut']:%Y-%m-%dT%H:%M}, {fin:%Y-%m-%dT%H:%M}")
+    return lignes
 
 
 def tableau(entetes, lignes):
@@ -276,6 +383,21 @@ def lignes_cout_total(couts):
     ]
 
 
+def lignes_attente(faits, depart=None):
+    """La part du chantier passée à attendre l'humain, du premier départ au dernier fait — la base de la page de suivi."""
+    if not faits:
+        return [["Attente de l'humain", "aucun fait"]]
+    attentes = attentes_humain(faits)
+    debut, borne = depart or min(f["quand"] for f in faits), max(f["quand"] for f in faits)
+    attendu, etendue = temps_d_attente(attentes, borne), minutes_entre(debut, borne)
+    part = f" ({round(100 * attendu / etendue)} % des {duree_minutes(etendue)} depuis le premier départ)" if etendue else ""
+    permissions = sum(1 for a in attentes if a["cause"] == "permission")
+    return [
+        ["Attente de l'humain (au moins un agent arrêté)", duree_minutes(attendu) + part],
+        ["Attentes de l'humain : permissions / décisions", f"{permissions} / {len(attentes) - permissions}"],
+    ]
+
+
 def mesures(missions, suivi, faits, couts=None):
     """Ce qui se compare d'un chantier à l'autre ; sans journal, rien n'est mesuré, et c'est dit."""
     if faits is None:
@@ -290,6 +412,7 @@ def mesures(missions, suivi, faits, couts=None):
         ["Blocages remontés", str(sum(len(s["blocages"]) for s in suivi.values()))],
         ["Jalons d'intégration / ayant trouvé un défaut", f"{len(jalons)} / {defauts}"],
         ["Du premier départ à la dernière acceptation", duree(min(debuts), max(fins)) if debuts and fins else PAS_MESURE],
+        *lignes_attente(faits, min(debuts) if debuts else None),
         *lignes_cout_total(couts),
     ]
     return tableau(["Mesure", "Valeur"], lignes)
@@ -303,6 +426,7 @@ def render(data, evenements=None, couts=None):
     suivi = suivre(missions, faits or [])
     borne = max((f["quand"] for f in faits), default=None) if faits else None
     journal = faits is not None
+    attentes = attentes_humain(faits) if faits else []
     nom = clean(data["name"])
 
     def ligne_plan(m):
@@ -335,11 +459,12 @@ def render(data, evenements=None, couts=None):
                                            "Prévu", "Début", "Fin", "Durée"], [ligne_plan(m) for m in missions]) +
             "\n## Coût par mission\n\n" + section_couts(missions, couts) +
             "\n## Fini quand, par mission\n\n" + (criteres or "Aucune mission.\n") +
-            "\n## Gantt\n\n" + (gantt(missions, suivi, borne) if faits else "Pas mesuré : aucun fait de la Cantina reçu.\n") +
+            "\n## Gantt\n\n" + (gantt(missions, suivi, borne, attentes) if faits else "Pas mesuré : aucun fait de la Cantina reçu.\n") +
             "\n## Risques\n\n" + tableau(["Risque", "Ce qui le montrerait", "État"],
                                          [[r.get("risk"), r.get("signal"), r.get("status")] for r in data["risks"]]) +
             "\n## Blocages remontés\n\n" + (tableau(["Mission", "Par", "Quand", "Message", "Source"], blocages)
                                              if journal else "Pas mesuré.\n") +
+            "\n## Attentes de l'humain\n\n" + section_attentes(attentes, borne, journal) +
             "\n## Décisions\n\n" + tableau(["Décision", "Motif"], [[d.get("decision"), d.get("reason")] for d in data["decisions"]]) +
             "\n## Suivi\n\n" + ("".join(f"- {clean(x)}\n" for x in data["follow_up"]) or "Aucun.\n"))
 
@@ -364,6 +489,7 @@ def render(data, evenements=None, couts=None):
                                            [[o.get("id"), o.get("fact"), o.get("evidence"), o.get("cause"), o.get("cost"),
                                              o.get("scope"), o.get("action")] for o in retenues]) +
            "\n## Doublons écartés\n\n" + tableau(["Id", "Doublon de"], [[o.get("id"), o["duplicate_of"]] for o in doublons]) +
+           "\n## Attentes de l'humain\n\n" + section_attentes(attentes, borne, journal) +
            "\n## Mesures du chantier\n\n" + mesures(missions, suivi, faits, couts))
 
     # La note de livraison se lit sans savoir ce qu'est un SHA : seule la déclaration « delivered », posée après la
@@ -379,7 +505,7 @@ def render(data, evenements=None, couts=None):
                  tableau(["Fonction", "Où elle en est"], [[c.get("name"), libelles.get(c.get("state"), c.get("state") or "non livrée")]
                                                           for c in autres]))
     return {"plan.md": plan, "bilan.md": bilan, "rex.md": rex, "livraison.md": livraison,
-            "suivi.html": page_suivi(data, missions, suivi, journal, borne, couts)}
+            "suivi.html": page_suivi(data, missions, suivi, journal, borne, couts, attentes)}
 
 
 # --- La page de suivi ---------------------------------------------------------------------------------------------
@@ -455,7 +581,7 @@ def missions_suivies(missions, suivi, journal, borne):
     return rangs
 
 
-def gantt_suivi(rangs, vagues, borne):
+def gantt_suivi(rangs, vagues, borne, attentes=()):
     ancre = borne or ANCRE_SANS_JOURNAL
     lignes = ["gantt", "  dateFormat YYYY-MM-DDTHH:mm", "  axisFormat %d/%m %Hh"]
     vague = object()
@@ -482,6 +608,7 @@ def gantt_suivi(rangs, vagues, borne):
         else:
             quand = f"{ancre:%Y-%m-%dT%H:%M}, {duree_prevue}m"
         lignes.append(f"  {nom} :{tag}{tache}, {quand}")
+    lignes += lignes_gantt_attentes(attentes, borne, "  ")
     return "\n".join(lignes)
 
 
@@ -528,7 +655,27 @@ def puces(items, vide):
     return "".join(f"<li>{x}</li>" for x in items) or f"<li>{vide}</li>"
 
 
-def page_suivi(data, missions, suivi, journal, borne, couts):
+def attente_suivi(attentes, borne, journal, premier):
+    """Le bandeau et le bloc des attentes de l'humain. Une attente ouverte se dit en tête : c'est l'humain qui lit la page,
+    et c'est lui que l'équipe attend."""
+    if not journal:
+        return "pas mesurée", "", "<li>Pas mesuré.</li>", ""
+    attendu = temps_d_attente(attentes, borne)
+    etendue = minutes_entre(premier, borne) if premier and borne else 0
+    part = f"{round(100 * attendu / etendue)} % du chantier" if etendue else "rien à rapporter"
+    items = puces([f"<b>{h(a['qui'])}</b> · {h(a['cause'])}{' · ' + h(a['mission']) if a['mission'] else ''} · "
+                   f"{h(heure(a['debut']))} → {h(heure(a['fin'])) if a['fin'] else 'en cours'} · "
+                   f"{h(duree(a['debut'], a['fin'] or borne))} <span class=\"mono\">(n°{h(a['n'])})</span>"
+                   for a in attentes], "Personne n'a attendu l'humain.")
+    ouvertes = [a for a in attentes if not a["fin"]]
+    alerte = ""
+    if ouvertes:
+        qui = ", ".join(f"@{a['qui']} ({a['cause']}, depuis {heure(a['debut'])})" for a in ouvertes)
+        alerte = f'<div class="fraicheur attend"><span><b>L’équipe t’attend</b> : {h(qui)}</span></div>'
+    return duree_minutes(attendu), part, items, alerte
+
+
+def page_suivi(data, missions, suivi, journal, borne, couts, attentes=()):
     vagues = titres_vagues(data)
     rangs = missions_suivies(missions, suivi, journal, borne)
     actives = [r for r in rangs if r["cat"] != "off"]
@@ -602,13 +749,16 @@ def page_suivi(data, missions, suivi, journal, borne, couts):
     meta = f"<b>Résultat attendu</b> : {h(data.get('result')) or NON_RENSEIGNE}<br><b>Fini quand</b> : {h(data.get('done_when')) or NON_RENSEIGNE}"
     if data.get("out_of_scope"):
         meta += f"<br><b>Hors périmètre</b> : {h(data['out_of_scope'])}"
-    fraicheur = indicateur_fraicheur(borne, journal, min((r["s"]["debut"] for r in rangs if r["s"]["debut"]), default=None))
+    premier = min((r["s"]["debut"] for r in rangs if r["s"]["debut"]), default=None)
+    fraicheur = indicateur_fraicheur(borne, journal, premier)
+    attente, part_attente, attentes_li, attend = attente_suivi(attentes, borne, journal, premier)
     sans_date = "" if borne else ('<p class="meta">Aucune mission partie : le Gantt montre l\'enchaînement prévu, '
                                   "sans date réelle.</p>")
     return GABARIT_SUIVI.format(
         titre=h(data["name"]), phase=h(phase), meta=meta, fraicheur=fraicheur, avance=avance, base=h(base),
         fait=compte["fait"], en_cours=compte["en_cours"], a_venir=compte["a_venir"], bloque=compte["bloque"], total=len(rangs),
-        duree_reelle=duree_reelle, gantt=h(gantt_suivi(rangs, vagues, borne)), sans_date=sans_date, lignes="\n".join(lignes),
+        duree_reelle=duree_reelle, gantt=h(gantt_suivi(rangs, vagues, borne, attentes)), attente=attente,
+        part_attente=h(part_attente), attentes=attentes_li, attend=attend, alerte_attente=" alerte" if attend else "", sans_date=sans_date, lignes="\n".join(lignes),
         couts=couts_suivi(missions, couts), risques=risques, blocages=blocages, jalons=jalons, equipe=equipe,
         decisions=decisions, suivi=a_suivre, alerte=" alerte" if blocs else "", mermaid=MERMAID)
 
@@ -652,6 +802,7 @@ h2 {{ font-family: var(--display); font-weight: 700; font-size: 19px; margin: 0 
 .fraicheur {{ display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline; font-family: var(--mono); font-size: 13px; background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: 4px; padding: 8px 12px; }}
 .fraicheur b {{ font-weight: 600; }} .fraicheur .note {{ margin: 0; }}
 .fraicheur.vieille {{ border-left-color: var(--run); }}
+.fraicheur.attend {{ border-left-color: var(--hot); margin-top: 8px; }}
 .bandeau {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }}
 .kpi {{ background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; display: grid; gap: 2px; align-content: start; }}
 .kpi > b {{ font-family: var(--display); font-size: 26px; font-variant-numeric: tabular-nums; }}
@@ -688,6 +839,7 @@ section > .meta {{ margin-top: 8px; }}
 </style></head><body>
 <div class="page">
   {fraicheur}
+  {attend}
   <header>
     <div class="eyebrow">Chantier · {phase}</div>
     <h1>{titre}</h1>
@@ -700,6 +852,7 @@ section > .meta {{ margin-top: 8px; }}
     <div class="kpi"><span>À venir</span><b>{a_venir}</b></div>
     <div class="kpi"><span>Bloquées</span><b>{bloque}</b></div>
     <div class="kpi"><span>Durée réelle, en tout</span><b style="font-size:20px">{duree_reelle}</b><small>missions faites</small></div>
+    <div class="kpi"><span>Attente de l’humain</span><b style="font-size:20px">{attente}</b><small>{part_attente}</small></div>
   </div>
   <section>
     <h2>Gantt</h2>
@@ -725,6 +878,9 @@ section > .meta {{ margin-top: 8px; }}
     <div class="bloc{alerte}"><h2>Blocages</h2><ul>{blocages}</ul></div>
     <div class="bloc"><h2>Jalons</h2><ul>{jalons}</ul></div>
     <div class="bloc"><h2>Équipe</h2><ul>{equipe}</ul></div>
+  </div>
+  <div class="colonnes">
+    <div class="bloc{alerte_attente}"><h2>Attentes de l’humain</h2><ul>{attentes}</ul></div>
   </div>
   <div class="colonnes">
     <div class="bloc"><h2>Décisions</h2><ul>{decisions}</ul></div>

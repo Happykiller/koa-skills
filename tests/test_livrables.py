@@ -182,6 +182,87 @@ class Livrables(unittest.TestCase):
             self.assertIn("erreur", json.loads(ko.stdout))
 
 
+def dit(n, type_, mission, auteur, a, texte, quand):
+    f = fait(n, type_, mission, auteur, texte, quand)
+    f["Destinataire"] = a
+    return f
+
+
+# Le c11 d'un cluster, réduit : une décision portée à l'humain, une permission levée par KoA, une autre qui court encore.
+ATTENTES = JOURNAL + [
+    dit(20, "BLOCAGE", "M2", "orchestrateur", "humain", "BLOCAGE M2 — le classifieur refuse la lecture de release", "2026-11-01T11:20:00"),
+    # Le pilote coordonne en attendant : ce message ne dit rien de la réponse, il ne ferme pas l'attente.
+    dit(21, "MISSION", "M3", "orchestrateur", "cluster-a-tech", "MISSION M3 — la suite", "2026-11-01T11:25:00"),
+    dit(22, "RÉPONSE", "M2", "orchestrateur", "cluster-a-devops", "RÉPONSE M2 — l'humain a donné son accord", "2026-11-01T12:20:00"),
+    dit(23, "BLOCAGE", None, "koa", "orchestrateur",
+        "BLOCAGE — @cluster-a-tech attend une permission depuis 61 s : seul l'humain peut répondre", "2026-11-01T12:00:30"),
+    dit(24, "ATTENTE LEVÉE", None, "koa", "humain",
+        "ATTENTE LEVÉE — @cluster-a-tech a eu sa réponse de l'humain", "2026-11-01T13:59:00"),
+    dit(25, "BLOCAGE", None, "koa", "orchestrateur",
+        "BLOCAGE — @cluster-a-po attend une permission depuis 120 s : seul l'humain peut répondre", "2026-11-01T14:02:00"),
+    dit(26, "RÉSULTAT", "M3", "cluster-a-tech", "orchestrateur", "RÉSULTAT M3 — fait", "2026-11-01T14:30:00"),
+]
+
+
+class AttentesDeLHumain(unittest.TestCase):
+    """Un chantier de 22 h 47 pour sept heures de travail, et un REX qui n'en disait rien (épic 221 de KoA)."""
+
+    def setUp(self):
+        self.registre = json.loads(MODELE.read_text(encoding="utf-8"))
+        self.vues = render(self.registre, ATTENTES, COUTS)
+
+    def test_chaque_attente_se_date_par_sa_cause(self):
+        rex = self.vues["rex.md"]
+        self.assertIn("## Attentes de l'humain", rex)
+        # La décision court jusqu'au message qui relaie la réponse, pas jusqu'au suivant.
+        self.assertIn("| orchestrateur | M2 | décision | 01/11 11:20 | 01/11 12:20 | 1 h 00 | n°20 |", rex)
+        # La permission part de ce que KoA a mesuré (61 s avant son message), et s'arrête à sa levée.
+        self.assertIn("| cluster-a-tech | — | permission | 01/11 11:59 | 01/11 13:59 | 2 h 00 | n°23 |", rex)
+        # Une attente encore ouverte court jusqu'au dernier fait.
+        self.assertIn("| cluster-a-po | — | permission | 01/11 14:00 | en cours | 0 h 30 | n°25 |", rex)
+        self.assertIn("## Attentes de l'humain", self.vues["plan.md"])
+
+    def test_deux_attentes_qui_se_recouvrent_ne_comptent_qu_une_fois(self):
+        # 11:20 → 13:59, puis 14:00 → 14:30 : 2 h 39 + 30 min, sur 10:05 → 14:30.
+        for vue in ("rex.md", "bilan.md"):
+            self.assertIn("| Attente de l'humain (au moins un agent arrêté) | 3 h 09 (71 % des 4 h 25 depuis le premier départ) |",
+                          self.vues[vue])
+            self.assertIn("| Attentes de l'humain : permissions / décisions | 2 / 1 |", self.vues[vue])
+
+    def test_un_journal_d_avant_la_levee_se_ferme_au_message_suivant_de_l_agent(self):
+        journal = [f for f in ATTENTES if f["MessageId"] != 24]
+        rex = render(self.registre, journal)["rex.md"]
+        self.assertIn("| cluster-a-tech | — | permission | 01/11 11:59 | 01/11 14:30 | 2 h 31 | n°23 |", rex)
+
+    def test_l_humain_qui_repond_a_la_table_ferme_la_decision(self):
+        journal = ATTENTES[:-6] + [dit(30, "RÉPONSE", None, "humain", "orchestrateur", "vas-y, option a", "2026-11-01T11:40:00")]
+        self.assertIn("| orchestrateur | M2 | décision | 01/11 11:20 | 01/11 11:40 | 0 h 20 | n°20 |",
+                      render(self.registre, journal)["rex.md"])
+
+    def test_les_attentes_se_voient_en_rouge_au_gantt(self):
+        self.assertIn("    section Attente de l'humain", self.vues["plan.md"])
+        self.assertIn("    cluster-a-tech permission :crit, H2, 2026-11-01T11:59, 2026-11-01T13:59", self.vues["plan.md"])
+        self.assertIn("cluster-a-tech permission :crit, H2, 2026-11-01T11:59, 2026-11-01T13:59", self.vues["suivi.html"])
+
+    def test_la_page_dit_en_tete_que_l_equipe_attend_l_humain(self):
+        page = self.vues["suivi.html"]
+        self.assertIn('<div class="fraicheur attend"><span><b>L’équipe t’attend</b> : @cluster-a-po (permission, depuis 01/11 14:00)', page)
+        self.assertLess(page.index("fraicheur attend"), page.index("<header>"))
+        self.assertIn("<span>Attente de l’humain</span><b style=\"font-size:20px\">3 h 09</b><small>71 % du chantier</small>", page)
+        self.assertIn('<div class="bloc alerte"><h2>Attentes de l’humain</h2>', page)
+
+    def test_sans_attente_rien_ne_s_affole(self):
+        vues = render(self.registre, JOURNAL, COUTS)
+        self.assertIn("Aucune : personne n'a attendu l'humain.", vues["rex.md"])
+        self.assertIn("| Attente de l'humain (au moins un agent arrêté) | 0 min (0 % des 1 h 07 depuis le premier départ) |", vues["rex.md"])
+        self.assertNotIn("fraicheur attend", vues["suivi.html"])
+        self.assertIn("Personne n'a attendu l'humain.", vues["suivi.html"])
+
+    def test_sans_journal_rien_n_est_mesure(self):
+        vues = render(self.registre)
+        self.assertIn("## Attentes de l'humain\n\nPas mesuré", vues["rex.md"])
+
+
 class PageDeSuivi(unittest.TestCase):
     """La forme que l'humain a validée, figée : un chantier qui réécrivait sa page la perdait (épic 210 de KoA)."""
 
