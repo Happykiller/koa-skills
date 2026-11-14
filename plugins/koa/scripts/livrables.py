@@ -242,7 +242,7 @@ def section_attentes(attentes, borne, journal):
         return "Aucune : personne n'a attendu l'humain.\n"
     return (tableau(["Qui", "Mission", "Cause", "Début", "Fin", "Durée", "Source"], [ligne_attente(a, borne) for a in attentes]) +
             "\nUne permission se pose au tour de table, éprouvée à blanc ; une décision prévisible se met au mandat. "
-            "Après le lancement, un geste refusé se reporte à la file de l'humain au lieu de l'attendre. Chaque attente "
+            "Après le lancement, un obstacle se résout, et seul l'impossible va à la file de l'humain. Chaque attente "
             "après le lancement appelle une observation au REX.\n")
 
 
@@ -461,8 +461,8 @@ def render(data, evenements=None, couts=None):
                                                     [[r.get("role"), r.get("gesture"), r.get("touches"), r.get("state"),
                                                       r.get("proof")] for r in data["readiness"]])
               if data["readiness"] else "Pas d'audit au registre : le tour de table n'a rien écrit.\n")
-    file_humain = ("Ce qui a été reporté plutôt qu'attendu, à remettre à l'humain en un message à la livraison.\n\n" +
-                   tableau(["Geste ou décision", "Pour", "Pourquoi reporté", "Défaut pris", "Comment le faire"],
+    file_humain = ("Ce que l'équipe n'a pas pu résoudre seule, présenté à l'humain à la fin du chantier.\n\n" +
+                   tableau(["Geste ou décision", "Pour", "Pourquoi impossible", "Défaut pris", "Comment le faire"],
                            [[q.get("gesture"), q.get("by"), q.get("why"), q.get("default"), q.get("how")]
                             for q in data["human_queue"]])
                    if data["human_queue"] else "Vide : rien n'attend l'humain.\n")
