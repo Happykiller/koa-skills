@@ -3,6 +3,13 @@
   "result": "une API authentifiée et son front, déployés en recette",
   "done_when": "un utilisateur de recette se connecte et voit son tableau de bord",
   "out_of_scope": "la facturation",
+  "framing": "livré et déployé en recette, constaté par la PO ; l'humain absent du lancement à la livraison",
+  "readiness": [
+    { "role": "@cluster-a-devops", "gesture": "déployer en recette", "touches": "environnement partagé",
+      "state": "éprouvé", "proof": "make deploy-recette DRY_RUN=1 → rc=0" },
+    { "role": "@cluster-a-tech", "gesture": "lire le secret de la base de recette", "touches": "secret",
+      "state": "éprouvé", "proof": "coffre_lister → base-recette présent" }
+  ],
   "waves": { "1": "le socle, en parallèle", "2": "la rencontre" },
   "team": ["tech ×2 : @cluster-a-tech, @cluster-a-tech-2", "devops : @cluster-a-devops"],
   "features": [
@@ -23,7 +30,13 @@
     { "risk": "le format du jeton diverge entre M1 et M2", "signal": "I1 refusé", "status": "ouvert" }
   ],
   "decisions": [
-    { "decision": "jeton en en-tête plutôt qu'en cookie", "reason": "tranché par l'humain au plan" }
+    { "decision": "jeton en en-tête plutôt qu'en cookie", "reason": "tranché par l'humain au plan" },
+    { "decision": "mandat : un écart du constat dans le périmètre se corrige sans redemander", "reason": "validé avec le plan" }
+  ],
+  "human_queue": [
+    { "gesture": "désactiver le compte de recette qui a servi d'acteur d'administration", "by": "@cluster-a-devops",
+      "why": "aucun autre compte d'administration ne peut le faire", "default": "compte gardé actif, sans session",
+      "how": "écran Comptes, en administrateur" }
   ],
   "observations": [
     { "id": "O1", "fact": "M2 a attendu 40 min un secret de recette", "evidence": "BLOCAGE n°57",

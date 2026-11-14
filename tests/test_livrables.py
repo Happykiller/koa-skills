@@ -325,5 +325,45 @@ class PageDeSuivi(unittest.TestCase):
         self.assertNotIn("<img src=x", page)
 
 
+class ExecutionAutonome(unittest.TestCase):
+    """Le c11 d'a2p : trois attentes de l'humain, toutes visibles au tour de table (revue d'autonomie du 14/11/2026)."""
+
+    def setUp(self):
+        self.registre = json.loads(MODELE.read_text(encoding="utf-8"))
+        self.vues = render(self.registre, ATTENTES, COUTS)
+
+    def test_la_liste_de_depart_ouvre_le_plan(self):
+        plan = self.vues["plan.md"]
+        self.assertLess(plan.index("## Liste de départ"), plan.index("## Features"))
+        self.assertIn("| @cluster-a-devops | déployer en recette | environnement partagé | éprouvé | make deploy-recette DRY_RUN=1 → rc=0 |", plan)
+        self.assertIn("**Cadrage** : livré et déployé en recette", plan)
+
+    def test_un_registre_sans_audit_le_dit(self):
+        registre = copy.deepcopy(self.registre)
+        del registre["readiness"]
+        self.assertIn("Pas d'audit au registre", render(registre)["plan.md"])
+
+    def test_la_file_de_l_humain_se_lit_au_plan_et_au_bilan(self):
+        for vue in ("plan.md", "bilan.md"):
+            self.assertIn("## File de l'humain", self.vues[vue])
+            self.assertIn("| désactiver le compte de recette qui a servi d'acteur d'administration | @cluster-a-devops |", self.vues[vue])
+        registre = copy.deepcopy(self.registre)
+        registre["human_queue"] = []
+        self.assertIn("Vide : rien n'attend l'humain.", render(registre)["bilan.md"])
+
+    def test_l_attente_apres_le_lancement_se_mesure_a_part(self):
+        # Premier départ 10:05 : les trois attentes (11:20 → 13:59, 14:00 → 14:30) sont toutes après.
+        self.assertIn("| Attente de l'humain après le lancement (cible : 0) | 3 h 09 |", self.vues["rex.md"])
+        sans = render(self.registre, JOURNAL, COUTS)["rex.md"]
+        self.assertIn("| Attente de l'humain après le lancement (cible : 0) | 0 min |", sans)
+
+    def test_un_audit_mal_forme_est_refuse(self):
+        for cle in ("readiness", "human_queue"):
+            registre = copy.deepcopy(self.registre)
+            registre[cle] = ["une phrase"]
+            with self.assertRaises(ValueError):
+                render(registre)
+
+
 if __name__ == "__main__":
     unittest.main()

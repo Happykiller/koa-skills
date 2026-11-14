@@ -84,11 +84,12 @@ def lire_registre(data):
         raise ValueError("le registre doit être un objet JSON")
     if not isinstance(data.get("name"), str) or not data["name"].strip():
         raise ValueError("name : le nom du chantier est obligatoire")
-    for cle in ("missions", "decisions", "risks", "observations", "capabilities", "features", "follow_up"):
+    for cle in ("missions", "decisions", "risks", "observations", "capabilities", "features", "follow_up",
+                "readiness", "human_queue"):
         valeur = data.setdefault(cle, [])
         if not isinstance(valeur, list):
             raise ValueError(f"{cle} doit être une liste")
-    for cle in ("missions", "decisions", "risks", "observations", "capabilities", "features"):
+    for cle in ("missions", "decisions", "risks", "observations", "capabilities", "features", "readiness", "human_queue"):
         if any(not isinstance(x, dict) for x in data[cle]):
             raise ValueError(f"{cle} : chaque élément est un objet")
     ids = [m.get("id") for m in data["missions"]]
@@ -240,8 +241,9 @@ def section_attentes(attentes, borne, journal):
     if not attentes:
         return "Aucune : personne n'a attendu l'humain.\n"
     return (tableau(["Qui", "Mission", "Cause", "Début", "Fin", "Durée", "Source"], [ligne_attente(a, borne) for a in attentes]) +
-            "\nUne permission se pose d'avance, à la validation du plan ; une décision prévisible se met au mandat de la "
-            "demande. Chaque attente longue appelle une observation au REX.\n")
+            "\nUne permission se pose au tour de table, éprouvée à blanc ; une décision prévisible se met au mandat. "
+            "Après le lancement, un geste refusé se reporte à la file de l'humain au lieu de l'attendre. Chaque attente "
+            "après le lancement appelle une observation au REX.\n")
 
 
 def etat(mission, s, avec_journal):
@@ -392,10 +394,16 @@ def lignes_attente(faits, depart=None):
     attendu, etendue = temps_d_attente(attentes, borne), minutes_entre(debut, borne)
     part = f" ({round(100 * attendu / etendue)} % des {duree_minutes(etendue)} depuis le premier départ)" if etendue else ""
     permissions = sum(1 for a in attentes if a["cause"] == "permission")
-    return [
+    # Ce qui attend avant le premier départ appartient au cadrage et au tour de table, où l'humain est là exprès. Après,
+    # le chantier s'exécute sans lui : chaque minute de cette ligne est un geste que l'audit n'a pas posé.
+    apres = [dict(a, debut=max(a["debut"], debut)) for a in attentes if depart and (a["fin"] or borne) > debut]
+    lignes = [
         ["Attente de l'humain (au moins un agent arrêté)", duree_minutes(attendu) + part],
         ["Attentes de l'humain : permissions / décisions", f"{permissions} / {len(attentes) - permissions}"],
     ]
+    if depart:
+        lignes.append(["Attente de l'humain après le lancement (cible : 0)", duree_minutes(temps_d_attente(apres, borne))])
+    return lignes
 
 
 def mesures(missions, suivi, faits, couts=None):
@@ -447,13 +455,26 @@ def render(data, evenements=None, couts=None):
                        for m in missions)
     blocages = [[b["Mission"], b.get("Auteur"), heure(b["quand"]), b.get("Texte"), f"n°{b.get('MessageId')}"]
                 for s in suivi.values() for b in s["blocages"]]
+    # La liste de départ est l'audit du tour de table : tant qu'une ligne n'est pas éprouvée, rien ne part.
+    depart = ("Chaque geste qui sort du dépôt de son agent, éprouvé au tour de table. Rien ne part tant qu'une ligne "
+              "n'est pas « éprouvé ».\n\n" + tableau(["Rôle", "Geste", "Ce qu'il touche", "État", "Preuve ou ce qu'il faut"],
+                                                    [[r.get("role"), r.get("gesture"), r.get("touches"), r.get("state"),
+                                                      r.get("proof")] for r in data["readiness"]])
+              if data["readiness"] else "Pas d'audit au registre : le tour de table n'a rien écrit.\n")
+    file_humain = ("Ce qui a été reporté plutôt qu'attendu, à remettre à l'humain en un message à la livraison.\n\n" +
+                   tableau(["Geste ou décision", "Pour", "Pourquoi reporté", "Défaut pris", "Comment le faire"],
+                           [[q.get("gesture"), q.get("by"), q.get("why"), q.get("default"), q.get("how")]
+                            for q in data["human_queue"]])
+                   if data["human_queue"] else "Vide : rien n'attend l'humain.\n")
     plan = (f"# Plan — {nom}\n\n"
             f"**Résultat attendu** : {clean(data.get('result'))}  \n"
             f"**Fini quand** : {clean(data.get('done_when'))}  \n"
             f"**Hors périmètre** : {clean(data.get('out_of_scope'))}  \n"
+            f"**Cadrage** : {clean(data.get('framing'))}  \n"
             f"**Équipe** : {clean(data.get('team'))}  \n"
             f"**État au** : {etat_au(borne, journal)}\n\n"
-            "## Features\n\n" + tableau(["Feature", "Branche", "Finalisation"],
+            "## Liste de départ\n\n" + depart +
+            "\n## Features\n\n" + tableau(["Feature", "Branche", "Finalisation"],
                                         [[f.get("name"), f.get("branch"), f.get("finalize")] for f in data["features"]]) +
             "\n## Missions\n\n" + tableau(["Id", "Vague", "Feature", "Pour", "Dépend de", "Relu par", "Criticité", "État",
                                            "Prévu", "Début", "Fin", "Durée"], [ligne_plan(m) for m in missions]) +
@@ -465,6 +486,7 @@ def render(data, evenements=None, couts=None):
             "\n## Blocages remontés\n\n" + (tableau(["Mission", "Par", "Quand", "Message", "Source"], blocages)
                                              if journal else "Pas mesuré.\n") +
             "\n## Attentes de l'humain\n\n" + section_attentes(attentes, borne, journal) +
+            "\n## File de l'humain\n\n" + file_humain +
             "\n## Décisions\n\n" + tableau(["Décision", "Motif"], [[d.get("decision"), d.get("reason")] for d in data["decisions"]]) +
             "\n## Suivi\n\n" + ("".join(f"- {clean(x)}\n" for x in data["follow_up"]) or "Aucun.\n"))
 
@@ -480,6 +502,7 @@ def render(data, evenements=None, couts=None):
                                            [[i, str(s["refus"]), str(len(s["blocages"]))] for i, s in suivi.items()
                                             if s["refus"] or s["blocages"]]) if journal else "Pas mesuré.\n") +
              "\n## Pas vérifié\n\n" + tableau(["Mission", "Pas vérifié"], [[m["id"], m.get("unverified")] for m in missions]) +
+             "\n## File de l'humain\n\n" + file_humain +
              "\n## Mesures\n\n" + mesures(missions, suivi, faits, couts))
 
     retenues = [o for o in data["observations"] if not o.get("duplicate_of")]

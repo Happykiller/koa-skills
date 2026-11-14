@@ -79,6 +79,12 @@ capitalisation y écrit.
 proposé) et l'outillage (ce que la session a refait, compté au `MOTEUR.md` du QG, outillé à trois occurrences ;
 ce qui a trompé, corrigé). Une contradiction est un arrêt. S'il n'est pas disponible, dis-le et poursuis sans ce volet.
 
+**Un accord que l'humain t'a donné dans ton onglet n'est pas une leçon pour ta mémoire.** Une mémoire ne lève aucun
+refus du classifieur : au chantier suivant, le même geste sera refusé, et l'humain redérangé. Ce qui l'a été dans la
+session se dit dans la ligne `Permissions` de ta `CLÔTURE` : le geste, et ce qu'il faut poser à ta seed (son bloc
+`autoMode`, ses permissions) pour qu'il passe seul. L'orchestrateur le porte à l'humain dans son compte rendu ; tu
+n'élargis jamais toi-même tes permissions.
+
 ## 3. Committer, dépôt par dépôt
 
 1. `git status --porcelain` et `git diff` — **lis** avant de stager.
@@ -137,6 +143,7 @@ Il sort en erreur si un dépôt reste sale ou décalé de son amont : c'est un a
 ## Clôture — <rôle>, cluster <cluster>
 Capitalisation : 1 page au dépôt, 1 consigne au QG, 1 issue rédigée à ouvrir (<lien prérempli>) — ou « rien ».
 Outillage : 1 script créé (où), 1 candidat à 2/3 noté au QG, 1 hook corrigé — ou « rien de répété ».
+Permissions : 1 accord donné dans l'onglet, à poser à la seed (le geste, le bloc) — ou « aucune demandée ».
 Tests : <dépôt> « <dernière ligne de la sortie> », par dépôt dont le code a changé.
 | Dépôt | Commits | Push | État final |
 QG : branche capitalisation/<rôle>-… @<SHA complet>, à relire et fusionner par l'orchestrateur.
@@ -155,6 +162,7 @@ consigné sans destinataire si personne ne l'a demandé :
 CLÔTURE — <rôle>
 Capitalisation : <écrit, où ; proposé, où> — ou « rien »
 Outillage : <créé ou corrigé, où ; candidats et leur compte n/3> — ou « rien de répété »
+Permissions : <chaque accord donné dans l'onglet, et ce qu'il faut poser à la seed> — ou « aucune demandée »
 Poussé : <dépôts ; branche capitalisation/… @<SHA complet> à fusionner> — ou « rien »
 Non refermé : <ce qui tourne ou reste sale> — ou « rien »
 ```
