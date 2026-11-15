@@ -16,6 +16,10 @@ qui demande son intervention se règle **avant le lancement** : au cadrage (§ 1
 validation du plan (§ 4). Une fois le plan lancé, l'équipe va **seule jusqu'à la livraison** (§ 6). Une attente de
 l'humain après le lancement est un défaut de préparation, pas une étape normale.
 
+**Toute question à l'humain se pose par le choix interactif** (`AskUserQuestion`), jamais en prose numérotée : la règle
+et sa forme sont au chapitre « Une table n'est pas un forum » d'`equipe/table`. Cadrage, décisions du plan, validation, livraison :
+chaque fois que cette skill te fait demander, c'est un dialogue.
+
 | Variante | Quand |
 |---|---|
 | `/koa:mener-un-chantier` | l'humain ordonne un chantier : les étapes 1 à 6 |
@@ -41,9 +45,14 @@ heures et coûts « pas mesuré », états tirés d'un champ `state` que tu tien
 
 **La page de suivi se publie telle quelle, elle ne se refait pas.** `genere/suivi.html` porte la forme que l'humain a
 validée : l'heure de mise à jour et le temps écoulé tout en haut, l'avancement, le Gantt du plan entier, la durée réelle
-en couleur face au prévu, le coût par mission. Publie-la en artefact (même URL à chaque fois), sans la réécrire ni la
-retoucher : chaque page refaite par un chantier a perdu un réglage obtenu au précédent. Une forme à changer se demande
-dans koa-skills, pas dans un outil du QG.
+en couleur face au prévu, le coût par mission. Publie-la en artefact sans la réécrire ni la retoucher : chaque page
+refaite par un chantier a perdu un réglage obtenu au précédent. Une forme à changer se demande dans koa-skills, pas dans
+un outil du QG.
+
+**Actualiser, c'est générer puis publier, dans le même tour.** L'humain ne voit que la page publiée : au chantier qui a
+fait écrire cette règle, la page a été générée six fois et publiée deux, et l'humain a regardé à 17:20 l'état de 17:00.
+La première publication crée l'artefact ; note aussitôt son URL au registre (`suivi_url`) : chaque publication suivante
+la reprend, et la réponse de `chantier_actualiser` te la rappelle (`publier`). Ne publie jamais une seconde adresse.
 
 Actualise **à chaque fusion d'une mission**, à chaque vague lancée, et aux jalons : plan soumis, finalisation,
 livraison, clôture. Les états ne bougent qu'à l'actualisation : entre deux, la page montre un état figé, et son
@@ -56,7 +65,9 @@ prochain envoi de fiches, au plus tard à la clôture ; une réponse sans `commi
 Au QG, `docs/chantiers/<chantier>/demande.md` : l'ordre de l'humain, tel quel. Commite-le toi-même sur la branche
 principale du QG — c'est ton registre, sans relecture. Un nom de chantier court, en minuscules et tirets.
 
-**Puis cadre, en un message à l'humain**, avant toute consultation. Tes questions fixent le point d'arrivée :
+**Puis cadre avec l'humain, en un dialogue** (`AskUserQuestion`), avant toute consultation : quatre questions au plus
+par écran, ton choix par défaut en première option, marqué « (Recommandé) » ; au-delà, un second écran à la suite. Tes
+questions fixent le point d'arrivée :
 
 - **les livrables, et jusqu'où** : fusionné, finalisé, livré, déployé, constaté sur un environnement ? Ce qu'il
   confirme ici est acquis : une livraison confirmée au cadrage ne se redemande pas aux §§ 7-8 ;
@@ -126,9 +137,9 @@ les deux sont closes, comme toute vague ; un `BLOQUANT` y ouvre une correction t
 Pas de jalon sans risque d'incompatibilité nommé (`risks`), et un jalon ne remplace ni la suite complète ni la recette
 finales.
 
-**Le plan validé est un contrat d'autonomie.** Pose à l'humain **toutes** les décisions prévisibles en un message,
-avec `genere/plan.md`, et sa validation du plan en même temps. Ce message porte aussi, pour qu'il règle tout d'un coup
-avant de partir :
+**Le plan validé est un contrat d'autonomie.** Présente à l'humain le plan (le lien de la page de suivi, `genere/plan.md`)
+et ce qui suit, en un message ; puis pose-lui **toutes** les décisions prévisibles et la validation du plan **en
+dialogue**, à la suite, pour qu'il règle tout d'un coup avant de partir :
 
 - **la liste de départ** : chaque ligne « à poser » de l'audit, avec son rôle et le geste exact attendu de lui — le
   bloc `autoMode` de telle distro, un secret à verser au coffre, une commande `!` à lancer dans tel onglet. **Une
@@ -183,7 +194,7 @@ nomme cette mission reçoit, dans le même tour, `RÉPONSE M<k> — M<n> fusionn
 dépendance qu'il révélait entre au `depends_on` de la mission qui attendait — sans cette réponse, l'exécutant attend
 une fusion déjà faite. Une vague close
 lance la suivante, et s'actualise. **Un plan validé n'est pas un ordre de finaliser** : c'est le cadrage qui dit
-jusqu'où aller. S'il ne dit rien, demande-le à l'humain en un message, avec les preuves, la dernière vague close. Un défaut non bloquant va au « Suivi » (`follow_up`) ; un changement de périmètre est un **avenant**.
+jusqu'où aller. S'il ne dit rien, demande-le à l'humain en dialogue, avec les preuves, la dernière vague close. Un défaut non bloquant va au « Suivi » (`follow_up`) ; un changement de périmètre est un **avenant**.
 
 **Atteindre l'objectif, ne pas attendre.** Après le lancement, un obstacle — un mot de passe changé, un compte
 absent, un outil qui manque, un environnement occupé, une donnée inattendue — **se résout**. Ce n'est pas une
@@ -253,8 +264,13 @@ mesures que le journal permet. **Chaque attente de l'humain après le lancement 
 l'audit : le geste était-il à la liste de départ ? Si oui, pourquoi l'essai à blanc ne l'a-t-il pas montré ? Sinon,
 quelle rubrique de l'`AVIS` l'aurait fait voir ?
 
-Le `COMPTE RENDU` final s'adresse à l'humain qui revient : consigné sans destinataire, il cite les vues sans les
-recopier, et dit dans cet ordre :
+**La page de suivi devient le bilan.** Passe au registre `closed: true`, les critères d'acceptation du cadrage confrontés
+au résultat (`acceptance` : `criterion`, `state` — `réalisé`, `non réalisé` ou `pas vérifié` —, `evidence`) et les
+obstacles résolus seuls (`resolved` : `obstacle`, `solution`, `removed`), actualise et publie à la même URL : l'humain lit
+le chantier en tête de la page qu'il suivait, sans cloner le QG. Les `.md` de `genere/` restent pour les agents.
+
+Le `COMPTE RENDU` final s'adresse à l'humain qui revient : consigné sans destinataire, il donne **d'abord le lien de la
+page de bilan**, cite les vues sans les recopier, et dit dans cet ordre :
 
 - **les livrables**, au regard des critères d'acceptation du cadrage : réalisé, non réalisé, « Pas vérifié » ;
 - **ce que l'équipe a résolu seule** : chaque obstacle, la solution prise, et ce qui a été créé puis retiré ;
@@ -296,7 +312,7 @@ pour reprendre plus tard n'est pas une raison de ne pas clore, rien ne garantit 
 **Avant le lancement**, tout ce qui demande l'humain lui est porté : c'est le moment prévu pour ça. **Après**, un
 point impossible ne t'arrête pas : il va à la file de l'humain (§ 6), et le reste du chantier continue.
 
-Tu ne t'arrêtes, et ne portes la question à l'humain, une fois, avec les options, que si **plus rien ne peut avancer**
+Tu ne t'arrêtes, et ne portes la question à l'humain, une fois, en dialogue, que si **plus rien ne peut avancer**
 sans lui : chaque mission restante dépend d'un point de la file. Par exemple : une décision qui lui revient et n'est
 pas au mandat parce qu'il se l'est réservée, un rôle nécessaire qui manque sans budget pour l'ouvrir, une fusion refusée (jamais contournée), ou
 `chantier_actualiser` qui refuse le registre (corrige-le, ne contourne pas).

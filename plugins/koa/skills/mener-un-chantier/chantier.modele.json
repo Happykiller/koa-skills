@@ -4,6 +4,8 @@
   "done_when": "un utilisateur de recette se connecte et voit son tableau de bord",
   "out_of_scope": "la facturation",
   "framing": "livré et déployé en recette, constaté par la PO ; l'humain absent du lancement à la livraison",
+  "suivi_url": "",
+  "closed": false,
   "readiness": [
     { "role": "@cluster-a-devops", "gesture": "déployer en recette", "touches": "environnement partagé",
       "state": "éprouvé", "proof": "make deploy-recette DRY_RUN=1 → rc=0" },
@@ -46,6 +48,13 @@
   "capabilities": [
     { "name": "Se connecter", "state": "finalized", "usage": "depuis la page d'accueil, avec son adresse",
       "limits": "pas de mot de passe oublié", "prerequisites": "un compte créé par l'administrateur" }
+  ],
+  "acceptance": [
+    { "criterion": "un utilisateur de recette se connecte", "state": "réalisé", "evidence": "recette QA, cas R1" }
+  ],
+  "resolved": [
+    { "obstacle": "le secret de recette manquait au coffre", "solution": "versé par devops, prévu à la liste de départ",
+      "removed": "rien" }
   ],
   "follow_up": ["le message d'erreur de connexion est en anglais"]
 }
