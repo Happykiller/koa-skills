@@ -85,11 +85,12 @@ def lire_registre(data):
     if not isinstance(data.get("name"), str) or not data["name"].strip():
         raise ValueError("name : le nom du chantier est obligatoire")
     for cle in ("missions", "decisions", "risks", "observations", "capabilities", "features", "follow_up",
-                "readiness", "human_queue"):
+                "readiness", "human_queue", "acceptance", "resolved"):
         valeur = data.setdefault(cle, [])
         if not isinstance(valeur, list):
             raise ValueError(f"{cle} doit être une liste")
-    for cle in ("missions", "decisions", "risks", "observations", "capabilities", "features", "readiness", "human_queue"):
+    for cle in ("missions", "decisions", "risks", "observations", "capabilities", "features", "readiness", "human_queue",
+                "acceptance", "resolved"):
         if any(not isinstance(x, dict) for x in data[cle]):
             raise ValueError(f"{cle} : chaque élément est un objet")
     ids = [m.get("id") for m in data["missions"]]
@@ -698,6 +699,51 @@ def attente_suivi(attentes, borne, journal, premier):
     return duree_minutes(attendu), part, items, alerte
 
 
+# La page de fin (épic 228 de KoA) : les livrables de fin n'étaient que des .md au QG, qu'il fallait cloner pour les lire.
+# Chantier clos, la page de suivi devient le bilan, à la même URL : ce que l'humain lit en revenant, en tête.
+VERDICTS = {"réalisé": "ok", "non réalisé": "hot", "pas vérifié": "run"}
+
+
+def tableau_html(entetes, lignes):
+    if not lignes:
+        return '<p class="meta">Aucun.</p>'
+    tete = "".join(f"<th>{h(e)}</th>" for e in entetes)
+    corps = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in ligne) + "</tr>" for ligne in lignes)
+    return f'<div class="cadre"><table class="serre"><thead><tr>{tete}</tr></thead><tbody>{corps}</tbody></table></div>'
+
+
+def bilan_suivi(data):
+    if not data.get("closed"):
+        return ""
+    def verdict_critere(etat):
+        cle = str(etat or "").strip().lower()
+        return f'<span class="pill {VERDICTS.get(cle, "todo")}">{h(etat) or "—"}</span>'
+    criteres = tableau_html(["Critère", "Verdict", "Preuve"],
+                            [[h(c.get("criterion")), verdict_critere(c.get("state")), h(c.get("evidence"))]
+                             for c in data["acceptance"]])
+    resolus = tableau_html(["Obstacle", "Solution prise", "Créé puis retiré"],
+                           [[h(r.get("obstacle")), h(r.get("solution")), h(r.get("removed")) or "—"] for r in data["resolved"]])
+    file_humain = tableau_html(["Geste ou décision", "Pour", "Pourquoi impossible", "Comment le faire"],
+                               [[h(q.get("gesture")), h(q.get("by")), h(q.get("why")), f'<span class="mono">{h(q.get("how"))}</span>']
+                                for q in data["human_queue"]])
+    libelles = {"delivered": ("disponible", "ok"), "finalized": ("prête, pas encore livrée", "run"),
+                "planned": ("prévue", "todo"), "dropped": ("abandonnée", "off")}
+    capacites = tableau_html(["Fonction", "État", "Comment s'en servir", "Limites", "Prérequis"],
+                             [[h(c.get("name")),
+                               '<span class="pill {1}">{0}</span>'.format(*map(h, libelles.get(c.get("state"), (c.get("state") or "non livrée", "todo")))),
+                               h(c.get("usage")), h(c.get("limits")), h(c.get("prerequisites"))] for c in data["capabilities"]])
+    rex = tableau_html(["Fait", "Cause", "Action"],
+                       [[h(o.get("fact")), h(o.get("cause")), h(o.get("action"))]
+                        for o in data["observations"] if not o.get("duplicate_of")])
+    return ('<section class="bilan"><h2>Bilan du chantier</h2>'
+            '<p class="meta">Chantier clos : cette page est le compte rendu de fin. Les vues détaillées restent au QG.</p></section>'
+            f"<section><h2>Critères d’acceptation</h2>{criteres}</section>"
+            f"<section><h2>Livraison</h2>{capacites}</section>"
+            f"<section><h2>Ce que l’équipe a résolu seule</h2>{resolus}</section>"
+            f"<section><h2>File de l’humain</h2>{file_humain}</section>"
+            f"<section><h2>Retour d’expérience</h2>{rex}</section>")
+
+
 def page_suivi(data, missions, suivi, journal, borne, couts, attentes=()):
     vagues = titres_vagues(data)
     rangs = missions_suivies(missions, suivi, journal, borne)
@@ -719,7 +765,9 @@ def page_suivi(data, missions, suivi, journal, borne, couts, attentes=()):
         duree_reelle = "—"
 
     restantes = [r for r in actives if r["cat"] != "fait"]
-    if not actives:
+    if data.get("closed"):
+        phase = "clos · bilan"
+    elif not actives:
         phase = "aucune mission au plan"
     elif not restantes:
         phase = "toutes les missions acceptées"
@@ -783,7 +831,7 @@ def page_suivi(data, missions, suivi, journal, borne, couts, attentes=()):
         duree_reelle=duree_reelle, gantt=h(gantt_suivi(rangs, vagues, borne, attentes)), attente=attente,
         part_attente=h(part_attente), attentes=attentes_li, attend=attend, alerte_attente=" alerte" if attend else "", sans_date=sans_date, lignes="\n".join(lignes),
         couts=couts_suivi(missions, couts), risques=risques, blocages=blocages, jalons=jalons, equipe=equipe,
-        decisions=decisions, suivi=a_suivre, alerte=" alerte" if blocs else "", mermaid=MERMAID)
+        decisions=decisions, suivi=a_suivre, alerte=" alerte" if blocs else "", mermaid=MERMAID, bilan=bilan_suivi(data))
 
 
 GABARIT_SUIVI = """<!doctype html>
@@ -868,6 +916,7 @@ section > .meta {{ margin-top: 8px; }}
     <h1>{titre}</h1>
     <p class="meta">{meta}</p>
   </header>
+  {bilan}
   <div class="bandeau">
     <div class="kpi"><span>Avancement</span><b>{avance} %</b><div class="barre"><i style="width: {avance}%"></i></div><small>{base}</small></div>
     <div class="kpi"><span>Faites</span><b>{fait}</b><small>sur {total}</small></div>

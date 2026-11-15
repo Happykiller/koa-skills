@@ -325,6 +325,51 @@ class PageDeSuivi(unittest.TestCase):
         self.assertNotIn("<img src=x", page)
 
 
+class PageDeFin(unittest.TestCase):
+    """Chantier clos, la page de suivi devient le bilan, à la même URL : les livrables de fin n'étaient que des .md au
+    QG, qu'il fallait cloner pour les lire (épic 228 de KoA, chantier test du 15/11/2026)."""
+
+    def setUp(self):
+        self.registre = json.loads(MODELE.read_text(encoding="utf-8"))
+
+    def clos(self, **champs):
+        registre = copy.deepcopy(self.registre)
+        registre.update(closed=True, **champs)
+        return render(registre, JOURNAL, COUTS)["suivi.html"]
+
+    def test_en_cours_la_page_ne_porte_pas_de_bilan(self):
+        self.assertNotIn("Bilan du chantier", render(self.registre, JOURNAL, COUTS)["suivi.html"])
+
+    def test_clos_le_bilan_vient_juste_apres_l_en_tete(self):
+        page = self.clos(acceptance=[{"criterion": "une commande démarre l'app", "state": "réalisé", "evidence": "npm start"},
+                                     {"criterion": "Firefox", "state": "pas vérifié"}],
+                         resolved=[{"obstacle": "base verrouillée sous l'ancienne version", "solution": "busy_timeout"}])
+        self.assertIn("Chantier · clos · bilan", page)
+        self.assertLess(page.index("</header>"), page.index("Bilan du chantier"))
+        self.assertLess(page.index("Bilan du chantier"), page.index('<div class="bandeau">'))
+        self.assertIn('<span class="pill ok">réalisé</span>', page)
+        self.assertIn('<span class="pill run">pas vérifié</span>', page)
+        self.assertIn("busy_timeout", page)
+
+    def test_clos_la_livraison_la_file_et_le_rex_s_y_lisent(self):
+        page = self.clos()
+        self.assertIn("Se connecter", page)
+        self.assertIn("prête, pas encore livrée", page)
+        self.assertIn("désactiver le compte de recette", page)
+        self.assertIn("lister les secrets au plan", page)
+
+    def test_le_bilan_ne_s_injecte_pas(self):
+        page = self.clos(acceptance=[{"criterion": "<script>alert(1)</script>", "state": "<b>x</b>"}])
+        self.assertNotIn("<script>alert", page)
+        self.assertNotIn("<b>x</b>", page)
+
+    def test_acceptance_doit_etre_une_liste_d_objets(self):
+        registre = copy.deepcopy(self.registre)
+        registre["acceptance"] = ["texte"]
+        with self.assertRaises(ValueError):
+            render(registre)
+
+
 class ExecutionAutonome(unittest.TestCase):
     """Le c11 d'a2p : trois attentes de l'humain, toutes visibles au tour de table (revue d'autonomie du 14/11/2026)."""
 
