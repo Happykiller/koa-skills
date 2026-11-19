@@ -93,6 +93,7 @@ def lire_registre(data):
                 "acceptance", "resolved"):
         if any(not isinstance(x, dict) for x in data[cle]):
             raise ValueError(f"{cle} : chaque élément est un objet")
+    lire_note(data)
     ids = [m.get("id") for m in data["missions"]]
     if any(not isinstance(i, str) or not re.fullmatch(r"[A-Za-z0-9][\w.-]{0,31}", i) for i in ids):
         raise ValueError("missions : chaque mission a un id court (M1, I1…), celui de son message MISSION")
@@ -106,6 +107,36 @@ def lire_registre(data):
         if inconnues:
             raise ValueError(f"{m['id']} dépend de missions absentes du plan : {', '.join(map(str, inconnues))}")
     return data
+
+
+# Une capture se publie avec la page, sous ce chemin relatif : rien hors de `captures/`, aucun lien qui sortirait du QG.
+CAPTURE = re.compile(r"captures/[A-Za-z0-9][\w.-]{0,80}\.(png|jpe?g|webp|gif)")
+ENCARTS = ("info", "astuce", "attention", "nouveau")
+
+
+def lire_note(data):
+    """La note métier (épic 233 de KoA) : tout y est facultatif, pour qu'un registre déjà écrit reste valide, mais ce
+    qui est donné a la bonne forme — une capture mal nommée échoue ici plutôt que de laisser un trou dans la page."""
+    note = data.setdefault("delivery_note", {})
+    if not isinstance(note, dict):
+        raise ValueError("delivery_note doit être un objet")
+    for cle in ("highlights", "rules", "faq", "next"):
+        if not isinstance(note.setdefault(cle, []), list):
+            raise ValueError(f"delivery_note.{cle} doit être une liste")
+    for cle in ("rules", "faq"):
+        if any(not isinstance(x, dict) for x in note[cle]):
+            raise ValueError(f"delivery_note.{cle} : chaque élément est un objet")
+    for c in data["capabilities"]:
+        for cle in ("steps", "screenshots", "notes"):
+            if not isinstance(c.setdefault(cle, []), list):
+                raise ValueError(f"capabilities : {cle} doit être une liste ({c.get('name')})")
+        for capture in c["screenshots"]:
+            if not isinstance(capture, dict) or not CAPTURE.fullmatch(str(capture.get("file", ""))):
+                raise ValueError(f"capabilities : capture refusée pour {c.get('name')} — un objet "
+                                 '{"file": "captures/<nom>.png", "caption": …}, publié avec la page')
+        for e in c["notes"]:
+            if not isinstance(e, dict) or e.get("kind") not in ENCARTS:
+                raise ValueError(f"capabilities : notes de {c.get('name')} — kind parmi {', '.join(ENCARTS)}")
 
 
 def lire_evenements(evenements):
@@ -529,7 +560,216 @@ def render(data, evenements=None, couts=None):
                  tableau(["Fonction", "Où elle en est"], [[c.get("name"), libelles.get(c.get("state"), c.get("state") or "non livrée")]
                                                           for c in autres]))
     return {"plan.md": plan, "bilan.md": bilan, "rex.md": rex, "livraison.md": livraison,
+            "livraison.html": note_livraison(data),
             "suivi.html": page_suivi(data, missions, suivi, journal, borne, couts, attentes)}
+
+
+# --- La note de livraison -------------------------------------------------------------------------------------------
+# Épic 233 de KoA : la note des autres métiers n'était qu'un inventaire en deux tableaux, qu'un opérateur a dû reprendre
+# à la main avant de la diffuser — « un document destiné au métier, pour lui expliquer les mises à jour, les nouveaux
+# process, règles, screens à l'appui, pédagogique ». Le gabarit est celui de la note reprise, figé par des tests :
+# public en tête, un geste par sous-titre, une capture par geste, rien de ce que seule l'équipe comprend.
+
+def t(valeur):
+    """Un texte de la note : échappé, et sans SHA — le métier ne sait pas ce que c'est, et n'a pas à l'apprendre."""
+    if valeur is None or valeur == "" or valeur == []:
+        return ""
+    texte = ", ".join(map(str, valeur)) if isinstance(valeur, list) else str(valeur)
+    return h(re.sub(r"\s{2,}", " ", SHA.sub("", texte)).strip())
+
+
+def ancre(titre, deja):
+    base = re.sub(r"[^a-z0-9]+", "-", sans_accents(titre).lower()).strip("-") or "section"
+    cle, n = base, 2
+    while cle in deja:
+        cle, n = f"{base}-{n}", n + 1
+    deja.add(cle)
+    return cle
+
+
+ETIQUETTES = {"info": "Bon à savoir", "astuce": "Astuce", "attention": "Attention", "nouveau": "Nouveau"}
+
+
+def encart(kind, texte):
+    return f'<div class="encart {kind}"><p class="etiq">{ETIQUETTES[kind]}</p><p>{texte}</p></div>'
+
+
+def geste(c, numero):
+    """Un geste de « Ce qui change pour vous » : qui, les étapes, la capture. Une capture absente se dit (loi 4)."""
+    morceaux = []
+    if c.get("who"):
+        morceaux.append(f'<p class="qui"><strong>Qui :</strong> {t(c["who"])}</p>')
+    etapes = [t(e) for e in c["steps"] if e] or ([t(c["usage"])] if c.get("usage") else [])
+    if etapes:
+        morceaux.append("<ol>" + "".join(f"<li>{e}</li>" for e in etapes) + "</ol>")
+    for capture in c["screenshots"]:
+        numero[0] += 1
+        legende = t(capture.get("caption")) or "Légende non renseignée."
+        morceaux.append(f'<figure><img src="{h(capture["file"])}" alt="{legende}" loading="lazy">'
+                        f'<figcaption><span class="num">Figure {numero[0]}.</span>{legende}</figcaption></figure>')
+    if not c["screenshots"]:
+        morceaux.append(encart("attention", f"Pas de capture : {t(c.get('no_screenshot')) or 'non renseigné'}."))
+    for e in c["notes"]:
+        morceaux.append(encart(e["kind"], t(e.get("text"))))
+    pieds = [f"<strong>{libelle} :</strong> {t(c.get(cle))}" for cle, libelle in
+             (("rules", "Règles"), ("limits", "Limites"), ("prerequisites", "Prérequis")) if c.get(cle)]
+    if pieds:
+        morceaux.append('<p class="pied">' + " · ".join(pieds) + "</p>")
+    return "".join(morceaux)
+
+
+def note_livraison(data):
+    note, nom = data["delivery_note"], t(data["name"])
+    livrees = [c for c in data["capabilities"] if c.get("state") == "delivered"]
+    autres = [c for c in data["capabilities"] if c.get("state") != "delivered"]
+    libelles = {"finalized": "prête, pas encore livrée", "planned": "prévue", "dropped": "abandonnée"}
+    deja, sections, numero = set(), [], [0]
+
+    def section(titre, corps):
+        sections.append((titre, ancre(titre, deja), corps))
+
+    points = [f"<li>{t(p)}</li>" for p in note["highlights"] if p]
+    if not livrees:
+        points.insert(0, "<li><strong>Rien n’est encore livré</strong> : cette note se complète à la livraison.</li>")
+    verifie = (f'<p>{t(note["verified"])}</p>' if note.get("verified")
+               else f'<p class="non-renseigne">Ce qui a été vérifié, où et avec quels comptes : {NON_RENSEIGNE.lower()}.</p>')
+    section("En bref", (f"<ul>{''.join(points)}</ul>" if points else "") + verifie)
+    if livrees:
+        corps = []
+        for c in livrees:
+            titre = str(c.get("name") or NON_RENSEIGNE)
+            corps.append(f'<h3 id="{ancre(titre, deja)}">{t(titre)}</h3>{geste(c, numero)}')
+        section("Ce qui change pour vous", "".join(corps))
+    if note["rules"]:
+        section("Ce que fait l’application", "".join(
+            (f"<h3>{t(r.get('title'))}</h3>" if r.get("title") else "") + f"<p>{t(r.get('text'))}</p>" for r in note["rules"]))
+    if note["faq"]:
+        section("Questions fréquentes", "".join(
+            f"<h3>{t(q.get('question'))}</h3><p>{t(q.get('answer'))}</p>" for q in note["faq"]))
+    if autres:
+        section("Ce qui n’est pas encore là", "<ul>" + "".join(
+            f"<li><strong>{t(c.get('name'))}</strong> — {t(libelles.get(c.get('state'), c.get('state') or 'non livrée'))}"
+            + (f" : {t(c['limits'])}" if c.get("limits") else "") + "</li>" for c in autres) + "</ul>")
+    else:
+        section("Ce qui n’est pas encore là", "<p>Tout ce qui était prévu est livré.</p>")
+    if note["next"]:
+        section("Et ensuite", "<ul>" + "".join(f"<li>{t(n)}</li>" for n in note["next"] if n) + "</ul>")
+
+    meta = "".join(f"<li>{v}</li>" for v in (t(note.get("date")),
+                                             f"Pour : {t(data['audience'])}" if data.get("audience") else "") if v)
+    public = ("" if data.get("audience")
+              else '<p class="alerte">Public non renseigné : il se demande au cadrage (audience).</p>')
+    sommaire = "".join(f'<li><a href="#{a}">{h(titre)}</a></li>' for titre, a, _ in sections)
+    corps = "".join(f'<h2 id="{a}">{h(titre)}</h2>{c}' for titre, a, c in sections)
+    return NOTE_GABARIT.format(titre=t(note.get("title")) or nom, nom=nom, sous_titre=t(note.get("subtitle")),
+                               meta=meta, public=public, sommaire=sommaire, corps=corps)
+
+
+NOTE_GABARIT = """<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{nom}</title>
+<style>
+:root {{
+  --fond: #f6f5f2; --papier: #ffffff; --encre: #1d2330; --doux: #5b6372; --trait: #e3e1dc;
+  --accent: #2f5bd3; --accent-doux: #e8eefc; --vert: #1f7a4d; --vert-doux: #e6f4ec;
+  --ambre: #9a6400; --ambre-doux: #fbf1dc; --violet: #6a3fb5; --violet-doux: #f0eafb;
+  --ombre: 0 1px 2px rgba(20,24,33,.06), 0 8px 24px rgba(20,24,33,.06);
+}}
+@media (prefers-color-scheme: dark) {{
+  :root:not([data-theme="light"]) {{
+    --fond: #14171d; --papier: #1b1f27; --encre: #e7e9ee; --doux: #a3aab8; --trait: #2c323d;
+    --accent: #8aa8ff; --accent-doux: #1f2a45; --vert: #6fd3a0; --vert-doux: #17302a;
+    --ambre: #f0c060; --ambre-doux: #33290f; --violet: #c3a6ff; --violet-doux: #2a2140;
+    --ombre: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  }}
+}}
+:root[data-theme="dark"] {{
+  --fond: #14171d; --papier: #1b1f27; --encre: #e7e9ee; --doux: #a3aab8; --trait: #2c323d;
+  --accent: #8aa8ff; --accent-doux: #1f2a45; --vert: #6fd3a0; --vert-doux: #17302a;
+  --ambre: #f0c060; --ambre-doux: #33290f; --violet: #c3a6ff; --violet-doux: #2a2140;
+  --ombre: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+}}
+* {{ box-sizing: border-box; }}
+body {{ margin: 0; background: var(--fond); color: var(--encre);
+  font: 17px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }}
+.page {{ max-width: 860px; margin: 0 auto; padding: 0 16px 64px; }}
+header.couverture {{ margin: 32px 0 28px; padding: 40px 40px 32px; border-radius: 18px; color: #fff;
+  background: linear-gradient(135deg, #22356f 0%, #2f5bd3 60%, #4f7cf0 100%); box-shadow: var(--ombre); }}
+.couverture .surtitre {{ margin: 0 0 12px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }}
+.couverture h1 {{ margin: 0 0 10px; font-size: clamp(28px, 5vw, 40px); line-height: 1.15; }}
+.couverture .sous-titre {{ margin: 0 0 24px; font-size: 19px; opacity: .92; max-width: 40em; }}
+.couverture .sous-titre:empty {{ display: none; }}
+.couverture .meta {{ display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; font-size: 14px; }}
+.couverture .meta li {{ padding: 4px 12px; border-radius: 999px; background: rgba(255,255,255,.16); }}
+.alerte {{ margin: 16px 0 0; padding: 8px 12px; border-radius: 8px; background: rgba(0,0,0,.25); font-size: 14px; }}
+nav.sommaire {{ margin: 0 0 32px; padding: 20px 24px; background: var(--papier); border: 1px solid var(--trait); border-radius: 14px; }}
+nav.sommaire p {{ margin: 0 0 8px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--doux); }}
+nav.sommaire ol {{ margin: 0; padding-left: 20px; columns: 2; column-gap: 32px; }}
+nav.sommaire li {{ break-inside: avoid; }}
+nav.sommaire a {{ color: var(--encre); text-decoration: none; }}
+nav.sommaire a:hover {{ color: var(--accent); text-decoration: underline; }}
+main {{ background: var(--papier); border: 1px solid var(--trait); border-radius: 18px; padding: 8px 40px 32px; box-shadow: var(--ombre); }}
+h2 {{ margin: 40px 0 12px; padding-top: 24px; border-top: 1px solid var(--trait); font-size: 26px; line-height: 1.25; }}
+main > h2:first-child {{ border-top: 0; padding-top: 16px; margin-top: 16px; }}
+h3 {{ margin: 28px 0 8px; font-size: 20px; line-height: 1.3; }}
+p {{ margin: 0 0 14px; }}
+ul, ol {{ margin: 0 0 16px; padding-left: 24px; }}
+li {{ margin: 4px 0; }}
+strong {{ font-weight: 650; }}
+a {{ color: var(--accent); }}
+.qui, .pied {{ color: var(--doux); }}
+.pied {{ font-size: 15px; }}
+.non-renseigne {{ color: var(--ambre); }}
+figure {{ margin: 22px 0 26px; break-inside: avoid; }}
+figure img {{ display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--trait);
+  box-shadow: var(--ombre); background: #fff; }}
+figcaption {{ margin-top: 10px; font-size: 14.5px; color: var(--doux); }}
+figcaption .num {{ font-weight: 650; color: var(--encre); margin-right: 6px; }}
+.encart {{ margin: 18px 0 22px; padding: 14px 18px; border-radius: 12px; border-left: 4px solid; break-inside: avoid; }}
+.encart p {{ margin: 0; }}
+.encart .etiq {{ margin-bottom: 4px; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }}
+.encart.info {{ background: var(--accent-doux); border-color: var(--accent); }} .encart.info .etiq {{ color: var(--accent); }}
+.encart.astuce {{ background: var(--vert-doux); border-color: var(--vert); }} .encart.astuce .etiq {{ color: var(--vert); }}
+.encart.attention {{ background: var(--ambre-doux); border-color: var(--ambre); }} .encart.attention .etiq {{ color: var(--ambre); }}
+.encart.nouveau {{ background: var(--violet-doux); border-color: var(--violet); }} .encart.nouveau .etiq {{ color: var(--violet); }}
+@media (max-width: 640px) {{
+  body {{ font-size: 16px; }}
+  header.couverture {{ padding: 28px 22px 24px; border-radius: 14px; }}
+  main {{ padding: 4px 18px 24px; border-radius: 14px; }}
+  nav.sommaire ol {{ columns: 1; }}
+  h2 {{ font-size: 22px; }}
+}}
+@page {{ size: A4; margin: 16mm 14mm; }}
+@media print {{
+  :root {{ --fond: #fff; --papier: #fff; --ombre: none; }}
+  body {{ font-size: 11.5pt; background: #fff; }}
+  .page {{ max-width: none; padding: 0; }}
+  header.couverture, .encart {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  header.couverture {{ margin-top: 0; }}
+  main {{ border: 0; box-shadow: none; padding: 0; }}
+  h2 {{ break-before: page; border-top: 0; padding-top: 0; }}
+  main > h2:first-child {{ break-before: auto; }}
+  h2, h3 {{ break-after: avoid; }}
+}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="couverture">
+    <p class="surtitre">Note de livraison</p>
+    <h1>{titre}</h1>
+    <p class="sous-titre">{sous_titre}</p>
+    <ul class="meta">{meta}</ul>{public}
+  </header>
+  <nav class="sommaire" aria-label="Sommaire"><p>Sommaire</p><ol>{sommaire}</ol></nav>
+  <main>{corps}</main>
+</div>
+</body>
+</html>
+"""
 
 
 # --- La page de suivi ---------------------------------------------------------------------------------------------

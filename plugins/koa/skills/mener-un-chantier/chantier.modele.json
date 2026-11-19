@@ -5,6 +5,8 @@
   "out_of_scope": "la facturation",
   "framing": "livré et déployé en recette, constaté par la PO ; l'humain absent du lancement à la livraison",
   "suivi_url": "",
+  "livraison_url": "",
+  "audience": "les utilisateurs de l’application et leur administrateur",
   "closed": false,
   "readiness": [
     { "role": "@cluster-a-devops", "gesture": "déployer en recette", "touches": "environnement partagé",
@@ -47,8 +49,25 @@
   ],
   "capabilities": [
     { "name": "Se connecter", "state": "finalized", "usage": "depuis la page d'accueil, avec son adresse",
-      "limits": "pas de mot de passe oublié", "prerequisites": "un compte créé par l'administrateur" }
+      "limits": "pas de mot de passe oublié", "prerequisites": "un compte créé par l'administrateur",
+      "who": "tout utilisateur qui a un compte",
+      "steps": ["Ouvrez la page d’accueil.", "Saisissez votre adresse et votre mot de passe, puis cliquez sur Se connecter.",
+                "Votre tableau de bord s’affiche."],
+      "rules": "trois essais manqués bloquent le compte un quart d’heure",
+      "screenshots": [{ "file": "captures/connexion.png", "caption": "La page de connexion, avant la saisie." }],
+      "no_screenshot": "",
+      "notes": [{ "kind": "astuce", "text": "Le navigateur peut retenir votre adresse : vous n’aurez plus que le mot de passe à saisir." }] }
   ],
+  "delivery_note": {
+    "title": "Chaque utilisateur se connecte à l’application avec son adresse",
+    "subtitle": "Les comptes créés par l’administrateur donnent accès au tableau de bord, en recette pour commencer.",
+    "date": "19 novembre 2026",
+    "highlights": ["Chaque utilisateur se connecte avec son adresse et voit son tableau de bord."],
+    "verified": "Vérifié en recette, avec un compte d’utilisateur et un compte d’administrateur. Rien n’est encore en production.",
+    "rules": [{ "title": "Un compte bloqué se débloque seul", "text": "Après trois essais manqués, le compte se débloque au bout d’un quart d’heure, sans rien demander." }],
+    "faq": [{ "question": "J’ai oublié mon mot de passe, que faire ?", "answer": "Demandez à l’administrateur : le mot de passe oublié n’est pas encore disponible." }],
+    "next": ["Le mot de passe oublié, au prochain chantier."]
+  },
   "acceptance": [
     { "criterion": "un utilisateur de recette se connecte", "state": "réalisé", "evidence": "recette QA, cas R1" }
   ],
