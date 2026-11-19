@@ -36,8 +36,9 @@ décisions, les observations, les capacités, le titre de chaque vague (`waves`)
 
 **Actualiser** = `chantier_actualiser` (`table`, `chantier`, `generateur` : `${CLAUDE_PLUGIN_ROOT}/scripts/livrables.py`).
 KoA y joint les faits de la Cantina et écrit sous `docs/chantiers/<chantier>/genere/` : `plan.md` (missions, états,
-heures, Gantt, blocages, attentes de l'humain), `bilan.md` (pour le pilote), `rex.md` (amélioration continue), `livraison.md` (pour les
-autres métiers) et **`suivi.html`, la page de suivi de l'humain**. Il y joint aussi le **coût par mission** (modèle,
+heures, Gantt, blocages, attentes de l'humain), `bilan.md` (pour le pilote), `rex.md` (amélioration continue), `livraison.md` (la
+livraison, pour les agents), **`livraison.html`, la note de livraison du métier** (§ 8) et **`suivi.html`, la page de
+suivi de l'humain**. Il y joint aussi le **coût par mission** (modèle,
 effort, tours, jetons), qu'il lit dans les transcripts : ne le compte pas, ne le recopie pas, il ne te coûte rien. Il ne
 rend que les chemins : ne relis pas les vues pour les recopier, cite-les. Sans cet outil,
 `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/livrables.py" <chantier.json> --output <dossier>/genere` rend les mêmes vues,
@@ -75,10 +76,11 @@ questions fixent le point d'arrivée :
 - **les contraintes et le hors-périmètre** ;
 - **son absence** : à partir de quand, pour combien de temps. Le plan en tient compte : ce qui se fera la nuit doit
   être permis avant ;
-- **ce qu'il veut trancher lui-même** quoi qu'il arrive. Le reste ira au mandat (§ 4).
+- **ce qu'il veut trancher lui-même** quoi qu'il arrive. Le reste ira au mandat (§ 4) ;
+- **à qui s'adresse la note de livraison** : les équipes, pays ou rôles qui vont se servir de ce qui sera livré.
 
 Ne pose que les questions dont la demande ne donne pas déjà la réponse. Les réponses vont au registre
-(`result`, `done_when`, `out_of_scope`, `framing`).
+(`result`, `done_when`, `out_of_scope`, `framing`, `audience`).
 
 **Ta session porte encore un chantier clos ?** Demande d'abord à l'humain une session neuve (`/clear`) : ce contexte
 se relit à chaque appel du chantier qui commence, et il en a pesé plus de la moitié des jetons. Ta `REPRISE` et le QG
@@ -248,9 +250,31 @@ Sur l'ordre de l'humain seulement : celui du cadrage, ou un ordre donné ensuite
 dernière livraison ; ses `BLOQUANT` ouvrent une vague de corrections, finalisée, avant de reprendre. Une mission
 au DevOps : la version de **chaque composant touché**, et d'eux seuls, sur `release/<version>`, que tu fusionnes
 dans `develop`. Puis fusionne dans `master` la tête de `develop` que le SecOps a revue, par le même geste (`git merge
---no-ff <SHA>`, `git push origin master`) ; DevOps pose l'étiquette. Déployer n'est fait que si l'ordre le dit. **Une fois la livraison faite** — et elle seule —, passe ses
-capacités en `delivered`, avec leur usage, leurs limites et leurs prérequis dits pour quelqu'un qui ne code pas, et
-actualise : `genere/livraison.md` est la note des autres métiers.
+--no-ff <SHA>`, `git push origin master`) ; DevOps pose l'étiquette. Déployer n'est fait que si l'ordre le dit.
+
+**Une fois la livraison faite** — et elle seule —, écris la note de livraison, **pour le métier** : le public du
+cadrage (`audience`), qui ne code pas et n'a pas suivi le chantier. Il doit y apprendre ce qui change dans son travail,
+les règles et process nouveaux, et comment s'y prendre, captures à l'appui. Passe les capacités livrées en `delivered`
+et donne à chacune :
+
+- **qui est concerné** (`who`) et **le geste pas à pas** (`steps`), dit comme on l'explique à un collègue : où
+  cliquer, ce qui s'affiche, ce qui se passe si on ne confirme pas ;
+- **la règle ou le process qui change** (`rules`), ses limites et ses prérequis ;
+- **une capture par écran du geste** (`screenshots`, chacune légendée), prise sur l'environnement livré avec le
+  compte de recette de la QA et rangée sous `docs/chantiers/<chantier>/captures/`. Une capture impossible se dit
+  (`no_screenshot`, avec sa raison) : jamais un trou ;
+- au besoin, des encarts (`notes` : `info`, `astuce`, `attention`, `nouveau`).
+
+Puis remplis `delivery_note` : un titre qui dit le bénéfice, un sous-titre d'une phrase, la date, l'essentiel en
+trois à cinq points (`highlights`), **ce qui a été vérifié, où et avec quels comptes, et ce qui ne l'a été que par les
+tests** (`verified`), les règles et process de l'application (`rules`), les questions qu'on posera (`faq`), la suite
+(`next`). **Ni SHA, ni identifiant de mission, ni nom de session, ni jargon d'équipe** : ce que le métier ne
+comprendrait pas n'y entre pas.
+
+Actualise : `genere/livraison.html` est la note. Publie-la en artefact **avec ses captures**, chacune à son chemin
+`captures/<nom>` (l'outil `Artifact`, paramètre `files`), et note son URL au registre (`livraison_url`) ; elle se
+republie à la même adresse. Comme la page de suivi, elle se publie telle quelle : une forme à changer se demande dans
+koa-skills. `genere/livraison.md` reste pour les agents.
 
 ## 9. Clore le chantier
 
@@ -270,7 +294,8 @@ obstacles résolus seuls (`resolved` : `obstacle`, `solution`, `removed`), actua
 le chantier en tête de la page qu'il suivait, sans cloner le QG. Les `.md` de `genere/` restent pour les agents.
 
 Le `COMPTE RENDU` final s'adresse à l'humain qui revient : consigné sans destinataire, il donne **d'abord le lien de la
-page de bilan**, cite les vues sans les recopier, et dit dans cet ordre :
+page de bilan**, puis celui de **la note de livraison** (`livraison_url`), à diffuser au métier, cite les vues sans
+les recopier, et dit dans cet ordre :
 
 - **les livrables**, au regard des critères d'acceptation du cadrage : réalisé, non réalisé, « Pas vérifié » ;
 - **ce que l'équipe a résolu seule** : chaque obstacle, la solution prise, et ce qui a été créé puis retiré ;

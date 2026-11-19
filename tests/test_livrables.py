@@ -58,7 +58,7 @@ class Livrables(unittest.TestCase):
         self.registre = json.loads(MODELE.read_text(encoding="utf-8"))
 
     def test_le_modele_livre_avec_la_skill_se_genere(self):
-        self.assertEqual(set(render(self.registre)), {"plan.md", "bilan.md", "rex.md", "livraison.md", "suivi.html"})
+        self.assertEqual(set(render(self.registre)), {"plan.md", "bilan.md", "rex.md", "livraison.md", "livraison.html", "suivi.html"})
 
     def test_les_heures_et_les_etats_viennent_du_journal(self):
         plan = render(self.registre, JOURNAL)["plan.md"]
@@ -408,6 +408,89 @@ class ExecutionAutonome(unittest.TestCase):
             registre[cle] = ["une phrase"]
             with self.assertRaises(ValueError):
                 render(registre)
+
+
+class NoteDeLivraison(unittest.TestCase):
+    """La note des autres métiers n'était qu'un inventaire en deux tableaux, reprise à la main avant d'être diffusée
+    (épic 233 de KoA) : elle s'écrit désormais pour le métier, un geste par sous-titre, une capture par geste."""
+
+    def setUp(self):
+        self.registre = json.loads(MODELE.read_text(encoding="utf-8"))
+
+    def note(self, **champs):
+        registre = copy.deepcopy(self.registre)
+        registre.update(champs)
+        return render(registre, JOURNAL, COUTS)["livraison.html"]
+
+    def livree(self, **champs):
+        capacite = dict(self.registre["capabilities"][0], state="delivered")
+        capacite.update(champs)
+        return [capacite]
+
+    def test_le_gabarit_suit_l_ordre_de_la_note_metier(self):
+        page = self.note(capabilities=self.livree())
+        ordre = ["Note de livraison", "Sommaire", "En bref", "Ce qui change pour vous", "Ce que fait l’application",
+                 "Questions fréquentes", "Et ensuite"]
+        positions = [page.index(f">{titre}<") for titre in ordre]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("Pour : les utilisateurs de l’application et leur administrateur", page)
+
+    def test_un_geste_porte_qui_ses_etapes_et_sa_capture_numerotee(self):
+        page = self.note(capabilities=self.livree())
+        self.assertIn("<strong>Qui :</strong> tout utilisateur qui a un compte", page)
+        self.assertIn("<li>Ouvrez la page d’accueil.</li>", page)
+        self.assertIn('<img src="captures/connexion.png"', page)
+        self.assertIn('<span class="num">Figure 1.</span>La page de connexion', page)
+
+    def test_une_capture_manquante_se_dit(self):
+        page = self.note(capabilities=self.livree(screenshots=[], no_screenshot="écran pas encore déployé en recette"))
+        self.assertIn("Pas de capture : écran pas encore déployé en recette.", page)
+        page = self.note(capabilities=self.livree(screenshots=[], no_screenshot=""))
+        self.assertIn("Pas de capture : non renseigné.", page)
+
+    def test_une_capacite_finalisee_n_est_jamais_dite_livree(self):
+        page = self.note()
+        self.assertNotIn("Ce qui change pour vous", page)
+        self.assertIn("Rien n’est encore livré", page)
+        self.assertIn("<strong>Se connecter</strong> — prête, pas encore livrée", page)
+
+    def test_ni_sha_ni_jargon_d_equipe(self):
+        page = self.note(capabilities=self.livree(usage=f"livré sur {SHA_A}", steps=[]))
+        self.assertNotIn(SHA_A, page)
+        for jargon in ("REVUE", "MISSION", "@cluster-a", "M1", "I1"):
+            self.assertNotIn(jargon, page)
+
+    def test_sans_public_la_note_le_dit(self):
+        registre = copy.deepcopy(self.registre)
+        del registre["audience"]
+        self.assertIn("Public non renseigné", render(registre)["livraison.html"])
+
+    def test_le_registre_ne_s_injecte_pas_dans_la_note(self):
+        page = self.note(capabilities=self.livree(who="<script>alert(1)</script>",
+                                                  screenshots=[{"file": "captures/a.png", "caption": '"><img onerror=x>'}]))
+        self.assertNotIn("<script>alert", page)
+        self.assertNotIn("<img onerror", page)
+
+    def test_une_capture_hors_de_captures_est_refusee(self):
+        for fichier in ("../secret.png", "/etc/passwd", "captures/../x.png", "https://exemple.test/a.png", "captures/a.svg"):
+            with self.assertRaises(ValueError, msg=fichier):
+                render(dict(copy.deepcopy(self.registre), capabilities=self.livree(screenshots=[{"file": fichier}])))
+
+    def test_un_encart_inconnu_est_refuse(self):
+        with self.assertRaises(ValueError):
+            render(dict(copy.deepcopy(self.registre), capabilities=self.livree(notes=[{"kind": "danger", "text": "x"}])))
+
+    def test_un_registre_d_avant_la_note_reste_valide(self):
+        registre = copy.deepcopy(self.registre)
+        for cle in ("audience", "delivery_note"):
+            registre.pop(cle)
+        for c in registre["capabilities"]:
+            for cle in ("who", "steps", "screenshots", "notes", "rules", "no_screenshot"):
+                c.pop(cle, None)
+        self.assertIn("Se connecter", render(registre)["livraison.html"])
+
+    def test_memes_entrees_memes_octets(self):
+        self.assertEqual(self.note(capabilities=self.livree()), self.note(capabilities=self.livree()))
 
 
 if __name__ == "__main__":
