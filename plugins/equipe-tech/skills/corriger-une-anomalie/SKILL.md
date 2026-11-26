@@ -1,6 +1,6 @@
 ---
 name: corriger-une-anomalie
-description: "Quand : un bug, un comportement faux, un test rouge à expliquer. Test rouge d'abord, cause racine, correction à la source, tests touchés. Pas pour : une évolution (implementer-une-evolution), un incident en production (equipe-devops)."
+description: "Quand : une mission ou une demande signale un bug, un résultat faux, une régression (« corrige », « ne marche plus », « depuis la 2.x »). À charger avant de toucher au code : test rouge d'abord, cause racine. Pas pour : un ajout (implementer-une-evolution)."
 ---
 
 # Corriger une anomalie

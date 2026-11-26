@@ -1,6 +1,6 @@
 ---
 name: verifier-avant-de-livrer
-description: "Quand : avant d'annoncer « fini », de livrer une tête ou de demander une revue. Diff relu, tests et build lancés et cités, critères cochés, « Pas vérifié » écrit. Pas pour : relire le travail d'un autre (relire-une-modification)."
+description: "Quand : tu t'apprêtes à écrire un RÉSULTAT, à dire « fini », à pousser une tête ou à demander une revue — même tests verts. Diff relu, tests lancés et cités, « Pas vérifié » écrit. Pas pour : relire un autre (relire-une-modification)."
 ---
 
 # Vérifier avant de livrer

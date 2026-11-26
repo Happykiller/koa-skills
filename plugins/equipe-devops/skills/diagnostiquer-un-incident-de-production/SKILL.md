@@ -1,6 +1,6 @@
 ---
 name: diagnostiquer-un-incident-de-production
-description: "DevOps — quand : une alerte ou un signalement, des utilisateurs touchés maintenant. Restaurer d'abord, comprendre ensuite. Pas pour : une panne hors production ou sans impact (diagnostiquer-une-defaillance-de-service)."
+description: "DevOps — quand : une alerte ou un signalement, des utilisateurs touchés maintenant. Restaurer d'abord, comprendre ensuite. Pas pour : juste après un déploiement (rollback-ou-roll-forward), une panne sans impact (diagnostiquer-une-defaillance-de-service)."
 ---
 
 # WF-07 — Diagnostiquer un incident de production
