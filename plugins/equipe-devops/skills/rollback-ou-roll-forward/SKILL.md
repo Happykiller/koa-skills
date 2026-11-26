@@ -1,6 +1,6 @@
 ---
 name: rollback-ou-roll-forward
-description: "DevOps — quand : une régression confirmée après un déploiement ; choisir et mener le retour arrière ou le correctif en avant."
+description: "DevOps — quand : ça casse juste après un déploiement (erreurs, latence, régression liée à une version). Choisir et mener le retour arrière ou le correctif en avant. Pas pour : sans déploiement récent (diagnostiquer-un-incident-de-production)."
 ---
 
 # WF-06 — Rollback ou roll-forward

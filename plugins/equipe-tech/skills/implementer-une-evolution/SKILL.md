@@ -1,6 +1,6 @@
 ---
 name: implementer-une-evolution
-description: "Quand : ajouter une fonctionnalité ou modifier un comportement existant. Prémisse vérifiée, plus petit changement, tests au fil de l'eau, consommateurs vérifiés. Pas pour : un bug (corriger-une-anomalie), un choix d'architecture à arbitrer."
+description: "Quand : une mission ou une demande ajoute ou change un comportement (« ajoute », « un export », « permets de »). À charger avant de toucher au code : prémisse vérifiée, plus petit changement, tests au fil de l'eau. Pas pour : un bug (corriger-une-anomalie)."
 ---
 
 # Implémenter une évolution
